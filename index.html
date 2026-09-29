@@ -473,8 +473,7 @@ async function doPush(){
   const apiUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/content.json`;
   const headers = {
     'Authorization': `token ${ghToken}`,
-    'Accept': 'application/vnd.github.v3+json',
-    'Cache-Control': 'no-cache'
+    'Accept': 'application/vnd.github.v3+json'
   };
 
   try {
@@ -482,7 +481,7 @@ async function doPush(){
     let sha = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const getRes = await fetch(apiUrl + '?t=' + Date.now(), { headers, cache: 'no-store' });
+        const getRes = await fetch(apiUrl + '?t=' + Date.now(), { headers });
         
         if (getRes.ok) {
           const fileData = await getRes.json();
@@ -528,7 +527,10 @@ async function doPush(){
 
   } catch (err) {
     console.error('Push error:', err);
-    toast(`Error: ${err.message}`, true);
+    const msg = err.message === 'Failed to fetch'
+      ? 'Network error. Check your internet connection or disable any ad-blocker/privacy extension.'
+      : err.message;
+    toast(`Error: ${msg}`, true);
   } finally {
     pb.textContent = 'Commit and push';
     pb.disabled = false;
