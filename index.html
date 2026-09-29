@@ -383,7 +383,6 @@ async function loadFromGitHub(manual){
       }
     });
     if (res.status === 404) {
-      // File doesn't exist yet. Start with empty data. This is fine.
       T = {}; E = []; H = []; DEF = 20;
       loaded = true;
       updateRepoBadge();
@@ -400,7 +399,6 @@ async function loadFromGitHub(manual){
     const text = await res.text();
     const data = JSON.parse(text);
 
-    // Repopulate state from the loaded JSON
     if (data.settings && typeof data.settings.defaultDelaySeconds === 'number') DEF = data.settings.defaultDelaySeconds;
     if (Array.isArray(data.leagues) && data.leagues.length) LG = data.leagues.map(l => ({n:l.name,s:l.sport}));
     T = {};
