@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Link Streamz Admin</title>
+<style>
+:root{--o:#FF6600;--o2:#FF8A33;--card:#0F0F0F;--row:#151515;--line:rgba(255,102,0,.16);--line2:rgba(255,102,0,.4);--tx:#F4E9DF;--mut:#8F7F71;--faint:#5E4C3E;--g:#3DDC84;--y:#FFB020;--r:#FF4D4D;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(80% 36% at 62% 0,rgba(255,102,0,.13),transparent 70%),#000;color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+.sb{border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;height:100dvh}
+.brand{display:flex;align-items:center;gap:11px;padding:0 6px 18px}
+.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(160deg,var(--o2),var(--o));display:grid;place-items:center;color:#000;box-shadow:0 4px 14px rgba(255,102,0,.35);flex:none}
+.brand b{display:block;letter-spacing:.04em;font-size:14px}
+.brand small{color:var(--mut);font-size:12px}
+#nav{display:grid;gap:4px}
+.nav{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:1px solid transparent;border-radius:12px;background:none;text-align:left;color:#B39A86}
+.nav:hover{background:rgba(255,102,0,.07)}
+.nav.on{background:rgba(255,102,0,.13);border-color:var(--line2);color:var(--tx);font-weight:600}
+.nav svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.nav.on svg{stroke:var(--o)}
+.nav em{margin-left:auto;font-style:normal;font-family:var(--mono);font-size:12px;color:var(--faint)}
+.repo{margin-top:auto;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px}
+.repo b{display:flex;align-items:center;gap:8px;font-size:13px}
+.repo small{display:block;color:var(--mut);font-family:var(--mono);font-size:11.5px;margin-top:4px;word-break:break-all}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
+.g{background:var(--g);box-shadow:0 0 8px rgba(61,220,132,.7)}.y{background:var(--y);box-shadow:0 0 8px rgba(255,176,32,.6)}.r{background:var(--r);box-shadow:0 0 8px rgba(255,77,77,.6)}
+.main{padding:22px 28px 60px;min-width:0;max-width:1320px;width:100%;margin:0 auto}
+.mb{display:none;align-items:center;gap:10px;margin-bottom:14px}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.top>div:first-child{flex:1 1 220px;min-width:0}
+.top h1{margin:0;font-size:22px}
+.sub{color:var(--mut);font-size:13px;margin:2px 0 0}
+.btn{border:none;border-radius:12px;padding:10px 16px;font-weight:700;background:linear-gradient(180deg,var(--o2),var(--o));color:#000;box-shadow:0 5px 16px rgba(255,102,0,.28)}
+.btn:hover{filter:brightness(1.08)}
+.btn.gh{background:transparent;color:var(--o);border:1px solid rgba(255,102,0,.6);box-shadow:none}
+.btn.gh:hover{background:rgba(255,102,0,.12)}
+.btn.rd{background:transparent;color:var(--r);border:1px solid rgba(255,77,77,.5);box-shadow:none}
+.btn.dn{background:var(--r);color:#000;box-shadow:0 5px 16px rgba(255,77,77,.28)}
+.pill{border:1px solid var(--line2);background:rgba(255,102,0,.1);color:var(--o);border-radius:20px;padding:7px 13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.pill.clean{color:var(--mut);background:none;border-color:var(--line)}
+input,select{background:#000;border:1px solid var(--line2);border-radius:10px;padding:9px 11px;width:100%;outline:none;min-width:0}
+select{background:#0A0A0A}
+input:focus,select:focus{border-color:var(--o);box-shadow:0 0 0 3px rgba(255,102,0,.15)}
+input::placeholder{color:var(--faint)}
+.mono{font-family:var(--mono);font-size:12.5px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.chip{border:1px solid rgba(255,102,0,.28);background:#0A0A0A;color:#B39A86;border-radius:18px;padding:7px 14px}
+.chip i{font-style:normal;color:#7A6656;margin-left:6px;font-size:12.5px}
+.chip.on{background:linear-gradient(180deg,var(--o2),var(--o));color:#000;border-color:var(--o);font-weight:700}
+.chip.on i{color:#000;opacity:.7}
+.search{margin-left:auto;max-width:260px;flex:1 1 180px}
+.tbl{border:1px solid var(--line);border-radius:18px;background:var(--card);overflow-x:auto}
+.tr{display:grid;gap:14px;align-items:center;padding:12px 16px}
+.tbl>.tr{border-top:1px solid var(--line)}
+.tbl>.tr:first-child{border-top:none}
+.th{color:var(--mut);font-size:12.5px}
+.ev{grid-template-columns:140px 1.1fr 1.7fr 130px 84px}
+.hl{grid-template-columns:1.3fr 1.6fr 80px 130px 84px}
+.tr.click:hover{background:rgba(255,102,0,.05)}
+.st{display:flex;align-items:center;gap:8px;font-weight:600}
+.mn{color:var(--o);font-weight:600}
+.pd{width:10px;height:10px;border-radius:50%;background:var(--o);box-shadow:0 0 8px rgba(255,102,0,.9);animation:p 1.6s infinite;flex:none}
+.pd.ring{background:none;border:2px solid var(--o);box-shadow:none;animation:none}
+.pd.off{background:var(--faint);box-shadow:none;animation:none}
+@keyframes p{50%{opacity:.5}}
+@media(prefers-reduced-motion:reduce){.pd{animation:none}*{transition:none!important}}
+.lg{color:#E3D3C4;font-size:13px;min-width:0}
+.lg small{display:block;color:var(--mut);font-size:12px}
+.m{display:flex;align-items:center;gap:9px;font-weight:600;min-width:0;flex-wrap:wrap}
+.m span{overflow:hidden;text-overflow:ellipsis}
+.bd{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;overflow:hidden;font-size:9.5px;font-weight:800;color:var(--tx);background:#1A1108;border:1px solid var(--line2);box-shadow:0 2px 6px rgba(0,0,0,.6)}
+.bd img{width:100%;height:100%;object-fit:cover;display:block}
+.svs{display:flex;align-items:center;gap:5px;color:var(--mut);font-size:13px;flex-wrap:wrap}
+.svs .dot{width:8px;height:8px}
+.acts{display:flex;gap:6px;justify-content:flex-end}
+.ib{width:36px;height:36px;border-radius:10px;border:1px solid var(--line2);background:#0A0A0A;color:var(--o);display:grid;place-items:center;font-size:15px;line-height:1;flex:none}
+.ib:hover{background:rgba(255,102,0,.14)}
+.ib.x{color:var(--r);border-color:rgba(255,77,77,.35)}
+.empty{padding:34px;text-align:center;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.tc{border:1px solid var(--line);background:var(--card);border-radius:18px;padding:14px;display:grid;gap:12px}
+.tc .bd{width:48px;height:48px;font-size:13px}
+.r2{display:flex;gap:12px;align-items:flex-end}
+.lab{font-size:12.5px;color:var(--mut);margin:0 0 5px;display:block}
+.panel{border:1px solid var(--line);background:var(--card);border-radius:18px;padding:18px;margin-bottom:16px}
+.panel h2{margin:0 0 4px;font-size:16px}
+.ft{display:grid;grid-template-columns:90px 1fr 1.6fr auto;gap:10px;align-items:end;margin-top:12px}
+.chg{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+.chg li{display:flex;gap:9px;align-items:center;background:var(--row);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.chg li::before{content:"+";color:var(--o);font-weight:800}
+pre{margin:0;background:#000;border:1px solid var(--line);border-radius:12px;padding:14px;max-height:320px;overflow:auto;font:12px/1.5 var(--mono);color:#E3D3C4}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.72);opacity:0;pointer-events:none;transition:opacity .2s;z-index:5}
+.ov.on{opacity:1;pointer-events:auto}
+.dr{position:fixed;top:0;right:0;bottom:0;width:min(500px,100%);background:var(--card);border-left:1px solid var(--line2);box-shadow:-20px 0 60px rgba(255,102,0,.10);transform:translateX(102%);transition:transform .25s;z-index:6;display:flex;flex-direction:column}
+.dr.on{transform:none}
+.dh{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.dh h2{margin:0;font-size:17px;margin-right:auto}
+.db{padding:18px 20px;overflow:auto;flex:1;display:grid;gap:16px;align-content:start}
+.df{padding:14px 20px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pc{background:#0A0A0A;border:1px solid var(--line);border-radius:16px;padding:9px 11px 11px}
+.pc .l{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:#E3D3C4;line-height:14px}
+.pc .mt{display:flex;align-items:center;margin-top:11px}
+.pc .tm{flex:1;display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;min-width:0}
+.pc .tm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc .tm.r2{justify-content:flex-end}
+.pc .bd{width:36px;height:36px;font-size:11px}
+.pc .c{width:70px;text-align:center;color:var(--o);font-weight:500;font-size:15px;flex:none}
+.pc .c small{display:block;font-family:var(--mono);font-size:10px}
+.tri{width:0;height:0;border-left:9px solid var(--o);border-top:5.5px solid transparent;border-bottom:5.5px solid transparent;flex:none}
+.pl2{font-family:var(--mono);font-size:12px;color:var(--o);background:rgba(255,102,0,.14);border:1px solid var(--line2);border-radius:8px;padding:2px 8px;text-transform:none}
+.play{width:36px;height:36px;border-radius:50%;background:linear-gradient(180deg,var(--o2),var(--o));display:grid;place-items:center;margin:auto}
+.play::after{content:"";border-left:11px solid #000;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px}
+.sv{border:1px solid var(--line);background:var(--row);border-radius:14px;padding:12px;display:grid;gap:10px}
+.sv.rec{border-color:rgba(255,102,0,.5);background:linear-gradient(90deg,rgba(255,102,0,.12),rgba(255,102,0,.02) 70%),var(--row)}
+.sr{display:grid;grid-template-columns:auto 1fr 84px auto;gap:8px;align-items:center}
+.rc{display:flex;align-items:center;gap:6px;font-size:13px;color:#B39A86;white-space:nowrap}
+.rc input{width:auto;accent-color:var(--o)}
+.cf{position:fixed;inset:0;z-index:8;display:none;place-items:center;padding:16px;background:rgba(0,0,0,.82)}
+.cf.on{display:grid}
+.cfb{background:var(--card);border:1px solid rgba(255,77,77,.45);border-radius:22px;padding:22px;max-width:420px;width:100%;box-shadow:0 0 0 4px rgba(255,77,77,.06),0 20px 60px rgba(0,0,0,.8)}
+.cfi{width:44px;height:44px;border-radius:14px;background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.4);color:var(--r);display:grid;place-items:center;font-size:22px;font-weight:800;margin-bottom:12px}
+.cfb h2{margin:0 0 8px;font-size:18px}
+.cfb p{margin:0 0 18px;color:#C9B8A8;line-height:1.5}
+.cfb p b{color:var(--tx)}
+.cfa{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,30px);opacity:0;transition:.25s;background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:12px 18px;z-index:9;box-shadow:0 10px 40px rgba(255,102,0,.2);display:flex;gap:10px;align-items:center;max-width:92vw}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+:focus-visible{outline:2px solid var(--o);outline-offset:2px}
+.tpb{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:6px 11px;background:#000;border:1px solid var(--line2);border-radius:10px;text-align:left}
+.tpb:hover{border-color:var(--o)}
+.tpb .bd{width:26px;height:26px;font-size:8.5px}
+.tpb span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpb::after{content:"\25BE";color:var(--o);font-size:13px}
+.tp{position:fixed;inset:0;z-index:7;display:none;place-items:center;padding:16px;background:rgba(0,0,0,.8)}
+.tp.on{display:grid}
+.tpc{background:var(--card);border:1px solid var(--line2);border-radius:22px;width:min(440px,100%);height:min(560px,86vh);height:min(560px,86dvh);display:flex;flex-direction:column;padding:16px;gap:12px;box-shadow:0 0 0 4px rgba(255,102,0,.05),0 20px 60px rgba(0,0,0,.8)}
+.tph{display:flex;align-items:center;gap:10px}
+.tph b{font-size:16px;flex:1}
+.tph small{color:var(--mut);font-size:12.5px}
+#tpl,#opl{flex:1;overflow:auto;display:grid;gap:6px;align-content:start;margin:0 -4px;padding:0 4px}
+.tpr{display:flex;align-items:center;gap:12px;width:100%;padding:8px 12px;border-radius:12px;background:var(--row);border:1px solid var(--line);text-align:left}
+.tpr .bd{width:34px;height:34px;font-size:10px}
+.tpr .n{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpr .cd{color:var(--mut)}
+.tpr .ck{color:var(--o);font-weight:800}
+.tpr:hover:not(:disabled),.tpr.act{border-color:var(--o);background:rgba(255,102,0,.10)}
+.tpr.sel{border-color:rgba(255,102,0,.55)}
+.tpr:disabled{opacity:.4;cursor:not-allowed}
+.tpr.add{border-style:dashed;border-color:rgba(255,102,0,.6)}
+.tpr.add .n{color:var(--o)}
+.tpg{color:var(--mut);font-size:12px;padding:8px 4px 2px}
+.tpn{display:grid;gap:10px;padding:14px;border:1px dashed var(--line2);border-radius:14px}
+.tpn p{margin:0;color:#C9B8A8}
+.tpb.tk::after{content:"\25F7";font-size:17px}
+.tpb:disabled{opacity:.5;cursor:not-allowed}
+.tpc.tmc{height:auto;max-height:92vh;max-height:92dvh;overflow:auto}
+.whs{display:flex;gap:10px;justify-content:center}
+.wc{flex:1;min-width:0;max-width:150px;text-align:center}
+.ww{position:relative;height:200px;border-radius:14px;background:#0A0A0A;border:1px solid var(--line);overflow:hidden}
+.ww::before,.ww::after{content:"";position:absolute;left:0;right:0;height:70px;z-index:2;pointer-events:none}
+.ww::before{top:0;background:linear-gradient(#0A0A0A,transparent)}
+.ww::after{bottom:0;background:linear-gradient(transparent,#0A0A0A)}
+.wb{position:absolute;left:6px;right:6px;top:80px;height:40px;border:1px solid var(--o);border-radius:10px;background:rgba(255,102,0,.10);z-index:0}
+.wh{position:relative;z-index:1;height:100%;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;outline:none}
+.wh::-webkit-scrollbar{display:none}
+.wh:focus-visible{outline:2px solid var(--o);outline-offset:-2px}
+.wp{height:80px}
+.wi{height:40px;scroll-snap-align:center;display:grid;place-items:center;font-size:16px;color:#7A6656;cursor:pointer;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wi.on{color:var(--tx);font-weight:700;font-size:18px}
+.tsum{text-align:center;padding:10px;border-radius:12px;background:rgba(255,102,0,.08);border:1px solid var(--line2);font-weight:600}
+.tsum small{display:block;color:var(--mut);font-weight:400;margin-top:2px}
+.adv{border-top:1px solid var(--line);padding-top:8px;display:grid;gap:12px}
+.adv summary{cursor:pointer;color:#B39A86;font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+.adv summary::-webkit-details-marker{display:none}
+.adv summary::before{content:"\25B8";color:var(--o);transition:transform .15s}
+.adv[open] summary::before{transform:rotate(90deg)}
+.adv summary .pl2{font-size:11px}
+.hr{display:grid;grid-template-columns:1fr 1.5fr auto;gap:8px;align-items:center}
+.chip.mini{padding:5px 10px;font-size:12.5px}
+.warn{display:grid;gap:2px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,176,32,.5);background:rgba(255,176,32,.08);margin-bottom:16px}
+.warn b{color:var(--y)}.warn span{color:#C9B8A8;font-size:13px}
+.warn.bad{border-color:rgba(255,77,77,.55);background:rgba(255,77,77,.08)}.warn.bad b{color:var(--r)}
+@media(max-width:1100px){.two{grid-template-columns:1fr}}
+@media(max-width:600px){.tp{place-items:end center;padding:0}.tpc{width:100%;height:88vh;height:88dvh;border-radius:22px 22px 0 0;padding-bottom:calc(16px + env(safe-area-inset-bottom))}}
+@media(max-width:860px){
+ .app{display:block}
+ .sb{position:fixed;left:0;right:0;bottom:0;top:auto;height:auto;flex-direction:row;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:rgba(0,0,0,.94);backdrop-filter:blur(10px);border-right:none;border-top:1px solid var(--line2);z-index:4;gap:0}
+ .sb .brand,.repo{display:none}
+ #nav{display:flex;width:100%;gap:4px}
+ .nav{flex:1;flex-direction:column;gap:3px;padding:7px 4px;font-size:11.5px;text-align:center;justify-content:center}
+ .nav em{display:none}
+ .main{padding:16px 14px 100px}
+ .mb{display:flex}
+ .toast{bottom:88px}
+}
+@media(max-width:760px){
+ .tbl{border:none;background:none;overflow:visible}
+ .th{display:none}
+ .tbl>.tr,.tbl>.tr:first-child{border:1px solid var(--line);background:var(--card);border-radius:16px;margin-bottom:10px;grid-template-columns:1fr auto;gap:10px 12px}
+ .ev{grid-template-areas:"lg st" "m m" "sv ac"}
+ .hl{grid-template-areas:"t ac" "m m" "d sv"}
+ .a-st{grid-area:st;justify-self:end}.a-lg{grid-area:lg}.a-m{grid-area:m}.a-sv{grid-area:sv}.a-ac{grid-area:ac}.a-t{grid-area:t}.a-d{grid-area:d}
+ .ft{grid-template-columns:1fr}
+ .search{max-width:none;flex-basis:100%;margin-left:0;order:9}
+}
+@media(max-width:480px){.f2{grid-template-columns:1fr}.top h1{font-size:20px}.dh,.db,.df{padding-left:14px;padding-right:14px}.df .btn{flex:1}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sb">
+    <div class="brand"><div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M7 4l13 8-13 8z"/></svg></div><div><b>LINK STREAMZ</b><small>Admin console</small></div></div>
+    <div id="nav"></div>
+    <div class="repo"><b><span class="dot g"></span>Connected to GitHub</b><small>link-streamz/data · main</small></div>
+  </aside>
+  <main class="main">
+    <div class="mb"><div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M7 4l13 8-13 8z"/></svg></div><div><b style="letter-spacing:.04em">LINK STREAMZ</b><div class="sub" style="margin:0">Admin console</div></div></div>
+    <div class="top"><div><h1 id="ttl"></h1><p class="sub" id="sub"></p></div><button class="pill" id="pill" onclick="go('publish')"></button><button class="btn" onclick="go('publish')">Publish</button></div>
+    <div id="view"></div>
+  </main>
+</div>
+<div class="ov" id="ov" onclick="closeEd()"></div>
+<aside class="dr" id="dr" aria-label="Editor"></aside>
+<div class="cf" id="cf" role="alertdialog" aria-labelledby="cft" aria-describedby="cfb"><div class="cfb"><div class="cfi">!</div><h2 id="cft"></h2><p id="cfb"></p><div class="cfa"><button class="btn gh" id="cfn" onclick="closeCf()">Cancel</button><button class="btn dn" id="cfy" onclick="pend();closeCf()"></button></div></div></div>
+<div class="tp" id="tp"><div class="tpc" role="dialog" aria-label="Choose a team"><div class="tph"><div style="flex:1;min-width:0"><b id="tpt"></b><br><small id="tpc"></small></div><button class="ib" aria-label="Close" onclick="closeTp()">&#10005;</button></div><input id="tps" type="search" autocomplete="off" placeholder="Search by team name or code" oninput="tpq=this.value;tpa=0;renderTp()" onkeydown="tpKey(event)"><div id="tpl"></div></div></div>
+<div class="tp" id="tm"><div class="tpc tmc" role="dialog" aria-label="Set time"><div class="tph"><div style="flex:1;min-width:0"><b id="tmt"></b><br><small id="tms"></small></div><button class="ib" aria-label="Close" onclick="closeTm()">&#10005;</button></div><div id="tmc" class="chips" style="margin:0"></div><div class="whs" id="whs"></div><div class="tsum" id="tsum"></div><div class="cfa"><button class="btn gh" onclick="closeTm()">Cancel</button><button class="btn" onclick="tmSet()">Set time</button></div></div></div>
+<div class="tp" id="op"><div class="tpc" role="dialog" aria-label="Choose an option"><div class="tph"><div style="flex:1;min-width:0"><b id="opt"></b><br><small id="opc"></small></div><button class="ib" aria-label="Close" onclick="closeOp()">&#10005;</button></div><input id="ops" type="search" autocomplete="off" placeholder="Search or type a new one" oninput="opQ=this.value;opA=0;renderOp()" onkeydown="opKey(event)"><div id="opl"></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+
+// ── GitHub Configuration & Local Storage ──────────────────────────────
+let ghUser = localStorage.getItem('ls_gh_user') || '';
+let ghRepo = localStorage.getItem('ls_gh_repo') || '';
+let ghToken = localStorage.getItem('ls_gh_token') || '';
+
+function saveCfg(k, v) {
+  if (k === 'user') { ghUser = v.trim(); localStorage.setItem('ls_gh_user', ghUser); }
+  if (k === 'repo') { ghRepo = v.trim(); localStorage.setItem('ls_gh_repo', ghRepo); }
+  if (k === 'token') { ghToken = v.trim(); localStorage.setItem('ls_gh_token', ghToken); }
+  render();
+}
+// ──────────────────────────────────────────────────────────────────────
+
+// ── EMPTY DATA STRUCTURES (Ready for your real content) ───────────────
+let T = {}; // Teams will be populated as you add them
+let E = []; // Events
+let H = []; // Highlights
+
+// Optional: Pre-filled dropdown suggestions for forms
+const SPORTS=['Football','Basketball','Cricket','Tennis','Rugby','Baseball','American football','Ice hockey','Volleyball','Motorsport'];
+const LG=[{n:'MLS',s:'Football'},{n:'Concacaf Nations League',s:'Football'},{n:'Asian Games',s:'Football'},{n:'Premier League',s:'Football'},{n:'La Liga',s:'Football'},{n:'Serie A',s:'Football'},{n:'Bundesliga',s:'Football'},{n:'UEFA Champions League',s:'Football'},{n:'FIFA World Cup',s:'Football'},{n:'Africa Cup of Nations',s:'Football'},{n:'WNBA',s:'Basketball'},{n:'NBA',s:'Basketball'},{n:'IPL',s:'Cricket'},{n:'ICC World Cup',s:'Cricket'},{n:'Wimbledon',s:'Tennis'}];
+
+let DEF=20,pubRepo=false;
+let view='events',filter='all',q='',ch=[],draft=null,isNew=false,mode='e',pend=()=>{};
+// ──────────────────────────────────────────────────────────────────────
+
+const ICO={events:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M8 14h3"/></svg>',highlights:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z"/></svg>',teams:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5a3 3 0 010 6M21 20c0-2.6-1.5-4.6-3.5-5.5"/></svg>',publish:'<svg viewBox="0 0 24 24"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>'};
+const bd=(c,id)=>`<span class="bd"${id?` id="${id}"`:''}>${T[c]&&T[c][1]?`<img src="${T[c][1]}" alt="" onerror="this.parentNode.textContent='${c}'">`:c}</span>`;
+const mark=m=>{if(!ch.includes(m))ch.push(m);pill()};
+const toast=(m,bad)=>{const t=$('#toast');t.innerHTML=`<span class="dot ${bad?'r':'g'}"></span>`+m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2600)};
+const pill=()=>{const p=$('#pill');p.className='pill'+(ch.length?'':' clean');p.innerHTML=ch.length?`<span class="dot" style="background:var(--o)"></span>${ch.length} unpublished change${ch.length>1?'s':''}`:'All changes published'};
+const go=v=>{view=v;render()};
+const vs=(a,w)=>a.length?a.map(x=>`<span class="dot ${x.st}"></span>`).join('')+`<span>${a.length} ${w}${a.length>1?'s':''}</span>`+(a.some(x=>x.px)?'<span class="pl2" style="margin-left:2px">proxy</span>':''):`<span style="color:var(--y)">No ${w}s</span>`;
+const mt=x=>`${bd(x.h)}<span>${T[x.h]?T[x.h][0]:x.h}</span><span style="color:var(--faint)">vs</span><span>${T[x.a]?T[x.a][0]:x.a}</span>${bd(x.a)}`;
+
+function render(){
+  const N={events:E.length,highlights:H.length,teams:Object.keys(T).length};
+  const L={events:'Events',highlights:'Highlights',teams:'Teams',publish:'Publish'};
+  $('#nav').innerHTML=Object.keys(L).map(k=>`<button class="nav ${view==k?'on':''}" onclick="go('${k}')">${ICO[k]}${L[k]}<em>${N[k]??''}</em></button>`).join('');
+  const nb=Object.values(T).filter(t=>!t[1]).length;
+  const S={events:'What appears on the app home screen',highlights:'Clips in the Highlights tab, each with one or more sources',teams:nb?`${nb} team${nb>1?'s':''} still need a badge link`:'Team names and badge images',publish:'Send your changes to GitHub so the app updates'};
+  $('#ttl').textContent=L[view];$('#sub').textContent=S[view];
+  $('#view').innerHTML={events:rEvents,highlights:rHl,teams:rTeams,publish:rPub}[view]();pill();
+}
+
+function rEvents(){
+  const c=s=>E.filter(e=>e.s==s).length;
+  const rows=E.filter(e=>(filter=='all'||e.s==filter)&&((T[e.h]?T[e.h][0]:'')+(T[e.a]?T[e.a][0]:'')+e.league).toLowerCase().includes(q));
+  const st=e=>e.s=='live'?`<span class="pd"></span><span class="mn">${e.w}'</span>`:e.s=='upcoming'?`<span class="pd ring"></span><span><span class="mn">${cd(e.k)}</span><small style="display:block;color:var(--mut);font-weight:400;font-size:12px">${fmtS(e.k)}</small></span>`:`<span class="pd off"></span><span style="color:var(--mut)">Ended</span>`;
+  return `<div class="chips">${[['all','All',E.length],['live','Live',c('live')],['upcoming','Upcoming',c('upcoming')],['finished','Finished',c('finished')]].map(x=>`<button class="chip ${filter==x[0]?'on':''}" onclick="filter='${x[0]}';render()">${x[1]}<i>${x[2]}</i></button>`).join('')}
+  <input class="search" placeholder="Search teams or leagues" value="${q}" oninput="q=this.value.toLowerCase();render();const i=$('.search');i.focus();i.setSelectionRange(99,99)"><button class="btn" onclick="newEv()">New event</button></div>
+  <div class="tbl"><div class="tr th ev"><span>Status</span><span>League</span><span>Match</span><span>Servers</span><span></span></div>
+  ${rows.map(e=>`<div class="tr ev click"><div class="st a-st">${st(e)}</div><div class="lg a-lg">${e.league}<small>${e.sport}</small></div><div class="m a-m">${mt(e)}</div><div class="svs a-sv">${vs(e.sv,'server')}</div><div class="acts a-ac"><button class="ib" aria-label="Edit event" onclick="openEd(${e.id})">&#9998;</button><button class="ib x" aria-label="Delete event" onclick="askDel('e',${e.id})">&#10005;</button></div></div>`).join('')||'<div class="empty">No events match. Try another filter or add a new event.</div>'}</div>`;
+}
+
+function rHl(){
+  return `<div class="chips"><span style="color:var(--mut)">Give a clip several sources so the app can fall back if one fails.</span><button class="btn" style="margin-left:auto" onclick="newHl()">Add highlight</button></div>
+  <div class="tbl"><div class="tr th hl"><span>Title</span><span>Match</span><span>Length</span><span>Sources</span><span></span></div>
+  ${H.map(x=>`<div class="tr hl click"><div class="lg a-t"><b style="color:var(--tx);font-size:14px">${x.t||'Untitled'}</b></div><div class="m a-m">${mt(x)}</div><div class="mono a-d">${x.d}</div><div class="svs a-sv">${vs(x.sv,'source')}</div><div class="acts a-ac"><button class="ib" aria-label="Edit highlight" onclick="openHl(${x.id})">&#9998;</button><button class="ib x" aria-label="Delete highlight" onclick="askDel('h',${x.id})">&#10005;</button></div></div>`).join('')||'<div class="empty">No highlights yet. Add the first one.</div>'}</div>`;
+}
+
+function rTeams(){
+  return `<div class="panel"><h2>Add a team</h2><p class="sub">The code is the short text shown when a badge is missing, for example CC.</p>
+  <div class="ft"><div><label class="lab">Code</label><input id="nc" maxlength="4" placeholder="CC" style="text-transform:uppercase"></div><div><label class="lab">Team name</label><input id="nn" placeholder="Columbus"></div><div><label class="lab">Badge link</label><input id="nb" class="mono" placeholder="https://.../badge.png"></div><button class="btn" onclick="addTeam()">Add team</button></div></div>
+  <div class="grid">${Object.keys(T).map(c=>`<div class="tc"><div class="r2">${bd(c,'b_'+c)}<div style="flex:1;min-width:0"><label class="lab">Name</label><input value="${T[c][0]}" onchange="T['${c}'][0]=this.value;mark('Renamed team ${c}')"></div><span class="mono" style="color:var(--mut);padding-bottom:10px">${c}</span></div>
+  <div><label class="lab">Badge link (PNG, SVG or WebP, square)</label><input class="mono" placeholder="https://.../badge.png" value="${T[c][1]}" onchange="setB('${c}',this.value)"></div></div>`).join('')}</div>`;
+}
+function setB(c,v){T[c][1]=v.trim();$('#b_'+c).outerHTML=bd(c,'b_'+c);mark('Updated badge for '+T[c][0]);render()}
+function addTeam(){
+  const c=$('#nc').value.trim().toUpperCase(),n=$('#nn').value.trim(),b=$('#nb').value.trim();
+  if(!c||!n)return toast('Enter a code and a team name',1);
+  if(T[c])return toast('The code '+c+' is already used',1);
+  T[c]=[n,b];mark('Added team '+n);render();toast('Team added')
+}
+
+function rPub(){
+  const sj=a=>a.map(x=>({name:x.n,url:x.u,quality:x.q,status:{g:'stable',y:'average',r:'unstable'}[x.st],recommended:x.r,useProxy:!!x.px,delaySeconds:x.dl??null,headers:Object.fromEntries((x.hd||[]).filter(h=>h.k.trim()).map(h=>[h.k.trim(),SECRET(h.k)?'••••••':h.v]))}));
+  const sec=[...E,...H].some(x=>x.sv.some(v=>(v.hd||[]).some(h=>h.k.trim()))),block=sec&&pubRepo;
+  const warn=sec?`<div class="warn ${pubRepo?'bad':''}"><b>${pubRepo?'Publishing is blocked':'Some servers include headers or tokens'}</b><span>${pubRepo?'The repository is public, so anyone could read your stream headers. Switch it to private to publish.':'Keep the repository private so only your app and this console can read them.'}</span></div>`:'';
+  const data=JSON.stringify({settings:{defaultDelaySeconds:DEF},sports:SPORTS,leagues:LG.map(l=>({name:l.n,sport:l.s})),teams:Object.entries(T).map(([code,[name,badge]])=>({code,name,badge})),events:E.map(e=>({id:e.id,league:e.league,sport:e.sport,home:e.h,away:e.a,status:e.s,...(e.s=='live'?{minute:e.w}:e.s=='upcoming'?{kickoff:e.k}:{}),servers:sj(e.sv)})),highlights:H.map(x=>({id:x.id,title:x.t,home:x.h,away:x.a,length:x.d,servers:sj(x.sv)}))},null,2);
+  
+  const isReady = ghUser && ghRepo && ghToken;
+
+  return `<div class="two"><div>${warn}
+  <div class="panel"><h2>GitHub Settings</h2><p class="sub" style="margin-bottom:10px">Required to push changes. Saved locally in your browser.</p>
+  <div class="f2"><div><label class="lab">Username</label><input value="${ghUser}" placeholder="e.g. johndoe" oninput="saveCfg('user', this.value)"></div>
+  <div><label class="lab">Data Repository</label><input value="${ghRepo}" placeholder="e.g. link-streamz-data" oninput="saveCfg('repo', this.value)"></div></div>
+  <div style="margin-top:12px"><label class="lab">Personal Access Token (PAT)</label><input type="password" value="${ghToken}" placeholder="ghp_..." oninput="saveCfg('token', this.value)"></div>
+  <p class="sub" style="margin-top:8px">Token needs <b>repo</b> scope. The repo should be private to protect your stream headers.</p>
+  </div>
+
+  <div class="panel"><h2>Stream defaults</h2><p class="sub" style="margin-bottom:10px">Used by any server that does not set its own delay</p><label class="lab">Default delay behind live</label><select onchange="DEF=+this.value;mark('Changed default delay to '+(DEF?DEF+'s':'off'));render()">${[0,10,20,30].map(v=>`<option value="${v}" ${DEF==v?'selected':''}>${v?v+' seconds':'Off'}</option>`).join('')}</select></div>
+  <div class="panel"><h2>Pending changes</h2><p class="sub">${ch.length?'These will be committed together.':'Nothing to publish. Edit an event, highlight or team first.'}</p><ul class="chg">${ch.map(m=>`<li>${m}</li>`).join('')}</ul></div>
+  <div class="panel"><h2>Commit</h2><label class="lab" style="margin-top:12px">Message</label><input id="cm" value="Update content (${ch.length} change${ch.length==1?'':'s'})"><div class="f2" style="margin-top:12px"><div><label class="lab">Repository</label><input value="${ghRepo || 'Not set'}" readonly></div><div><label class="lab">Branch</label><select><option>main</option><option>staging</option></select></div><div><label class="lab">Repository visibility</label><select onchange="pubRepo=this.value=='Public';render()"><option ${pubRepo?'':'selected'}>Private</option><option ${pubRepo?'selected':''}>Public</option></select></div></div>
+  <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap"><button class="btn" id="pb" ${ch.length&&!block&&isReady?'':'disabled style="opacity:.4;cursor:not-allowed"'} onclick="doPush()">Commit and push</button><button class="btn gh" onclick="ch=[];render();toast('Changes discarded')">Discard all</button></div>
+  <p class="sub" style="margin-top:12px">The app reads <span class="mono">content.json</span> from GitHub, so it updates after the push.</p></div></div>
+  <div class="panel" style="min-width:0"><h2>Data preview</h2><p class="sub" style="margin-bottom:10px">What will be saved (secret header values are hidden here)</p><pre>${data.replace(/</g,'&lt;')}</pre></div></div>`;
+}
+
+async function doPush(){
+  const pb = $('#pb');
+  if (!ghUser || !ghRepo || !ghToken) {
+    toast('Please fill in your GitHub details first.', true);
+    return;
+  }
+  pb.textContent = 'Pushing...';
+  pb.disabled = true;
+
+  const sj = a => a.map(x => ({
+    name: x.n, url: x.u, quality: x.q,
+    status: { g: 'stable', y: 'average', r: 'unstable' }[x.st],
+    recommended: x.r, useProxy: !!x.px,
+    delaySeconds: x.dl ?? null,
+    headers: Object.fromEntries((x.hd || []).filter(h => h.k.trim()).map(h => [h.k.trim(), SECRET(h.k) ? '••••••' : h.v]))
+  }));
+  
+  const data = JSON.stringify({
+    settings: { defaultDelaySeconds: DEF },
+    sports: SPORTS,
+    leagues: LG.map(l => ({ name: l.n, sport: l.s })),
+    teams: Object.entries(T).map(([code, [name, badge]]) => ({ code, name, badge })),
+    events: E.map(e => ({
+      id: e.id, league: e.league, sport: e.sport, home: e.h, away: e.a, status: e.s,
+      ...(e.s == 'live' ? { minute: e.w } : e.s == 'upcoming' ? { kickoff: e.k } : {}),
+      servers: sj(e.sv)
+    })),
+    highlights: H.map(x => ({ id: x.id, title: x.t, home: x.h, away: x.a, length: x.d, servers: sj(x.sv) }))
+  }, null, 2);
+
+  const apiUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/content.json`;
+  const headers = {
+    'Authorization': `token ${ghToken}`,
+    'Accept': 'application/vnd.github.v3+json'
+  };
+
+  try {
+    let sha = null;
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.ok) {
+      const fileData = await getRes.json();
+      sha = fileData.sha;
+    } else if (getRes.status !== 404) {
+      const errData = await getRes.json();
+      throw new Error(errData.message || `Failed to fetch file info: ${getRes.statusText}`);
+    }
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Admin panel update (${ch.length} changes)`,
+        content: btoa(unescape(encodeURIComponent(data))),
+        sha: sha || undefined
+      })
+    });
+
+    if (!putRes.ok) {
+      const errorData = await putRes.json();
+      throw new Error(errorData.message || 'Push failed');
+    }
+
+    const n = ch.length;
+    ch = [];
+    render();
+    toast(`Published ${n} change${n > 1 ? 's' : ''} to ${ghRepo}`);
+
+  } catch (err) {
+    console.error('Push error:', err);
+    toast(`Error: ${err.message}`, true);
+  } finally {
+    pb.textContent = 'Commit and push';
+    pb.disabled = false;
+  }
+}
+
+/* editor for events and highlights */
+function prev(d){
+  const w=d.s=='live'?`<div class="c"><span class="pd" style="margin:0 auto 3px;display:block"></span>${d.w||'0'}'</div>`:d.s=='upcoming'?`<div class="c"><small>STARTS IN</small>${d.k?cd(d.k):'-'}</div>`:`<div class="c" style="color:var(--mut);font-size:13px">Ended</div>`;
+  return `<div class="pc"><div class="l"><span class="pd ${d.s=='live'?'':'ring'}"></span>${d.sport||'Sport'} | ${d.league||'League'}</div><div class="mt"><div class="tm">${bd(d.h)}<span>${T[d.h]?T[d.h][0]:d.h}</span></div>${w}<div class="tm r2"><span>${T[d.a]?T[d.a][0]:d.a}</span>${bd(d.a)}</div></div></div>`;
+}
+function prevH(d){
+  return `<div class="pc"><div class="l"><span class="tri"></span><span style="flex:1;min-width:0">${d.t||'Highlight title'}</span><span class="pl2">${d.d||'00:00'}</span></div><div class="mt"><div class="tm">${bd(d.h)}<span>${T[d.h]?T[d.h][0]:d.h}</span></div><div class="c"><span class="play"></span></div><div class="tm r2"><span>${T[d.a]?T[d.a][0]:d.a}</span>${bd(d.a)}</div></div></div>`;
+}
+const opts=v=>Object.keys(T).map(c=>`<option value="${c}" ${c==v?'selected':''}>${T[c][0]}</option>`).join('');
+const pv=()=>{$('#pv').innerHTML=(mode=='e'?prev:prevH)(draft)};
+function newEv(){mode='e';isNew=true;draft={id:Date.now(),sport:'Football',league:'',h:'CC',a:'IM',s:'upcoming',w:'',k:defK(),sv:[]};showEd()}
+function newHl(){mode='h';isNew=true;draft={id:Date.now(),t:'',h:'CC',a:'IM',d:'',sv:[]};showEd()}
+function openEd(id){mode='e';isNew=false;draft=JSON.parse(JSON.stringify(E.find(e=>e.id==id)));showEd()}
+function openHl(id){mode='h';isNew=false;draft=JSON.parse(JSON.stringify(H.find(e=>e.id==id)));showEd()}
+function showEd(){
+  const ev=mode=='e';
+  const teams=`<div><label class="lab">Home team</label><button type="button" class="tpb" id="tp_h" onclick="openTp('h')">${tpi('h')}</button></div><div><label class="lab">Away team</label><button type="button" class="tpb" id="tp_a" onclick="openTp('a')">${tpi('a')}</button></div>`;
+  const fields=ev?`<div><label class="lab">Sport</label><button type="button" class="tpb" id="op_sport" onclick="openOp('sport')"><span>${esc(draft.sport)||'Choose a sport'}</span></button></div><div><label class="lab">League</label><button type="button" class="tpb" id="op_league" onclick="openOp('league')"><span>${esc(draft.league)||'Choose a league'}</span></button></div>${teams}<div><label class="lab">Status</label><select onchange="setStatus(this.value)">${['live','upcoming','finished'].map(s=>`<option ${s==draft.s?'selected':''}>${s}</option>`).join('')}</select></div><div id="tf">${tf()}</div>`
+  :`<div style="grid-column:1/-1"><label class="lab">Title</label><input value="${draft.t}" placeholder="e.g. Full match highlights" oninput="draft.t=this.value;pv()"></div>${teams}<div><label class="lab">Length</label><button type="button" class="tpb tk" onclick="openTm('duration',draft.d,v=>{draft.d=v;$('#hlen').textContent=v;pv()})"><span id="hlen">${draft.d||'Set length'}</span></button></div>`;
+  $('#dr').innerHTML=`<div class="dh"><h2>${isNew?(ev?'New event':'New highlight'):(ev?'Edit event':'Edit highlight')}</h2><button class="ib" aria-label="Close" onclick="closeEd()">&#10005;</button></div>
+  <div class="db"><div><label class="lab">How it looks in the app</label><div id="pv">${(ev?prev:prevH)(draft)}</div></div>
+  <div class="f2">${fields}</div>
+  <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><b style="flex:1">${ev?'Servers':'Servers and sources'}</b><button class="btn gh" style="padding:7px 12px" onclick="draft.sv.push({n:'Server '+(draft.sv.length+1),u:'https://',q:'SD',st:'g',r:!draft.sv.length,px:false,dl:null,hd:[]});rSv()">Add server</button></div>${ev?'':'<p class="sub" style="margin:0 0 10px">Add the same clip from different sources, for example your CDN and a mirror.</p>'}<div id="sl" style="display:grid;gap:10px"></div></div></div>
+  <div class="df"><button class="btn" onclick="saveEd()">${ev?'Save event':'Save highlight'}</button><button class="btn gh" onclick="closeEd()">Cancel</button>${isNew?'':`<button class="btn rd" style="margin-left:auto" onclick="askDel('${mode}',${draft.id})">Delete</button>`}</div>`;
+  rSv();$('#dr').classList.add('on');$('#ov').classList.add('on');
+}
+const HN=['User-Agent','Referer','Origin','Cookie','Authorization'],SECRET=k=>/^(cookie|authorization)$/i.test(String(k).trim());
+function rSv(){
+  $('#sl').innerHTML=draft.sv.map((x,i)=>{
+    const hd=x.hd||[],on=x.px||x.dl!=null||hd.length,add=k=>`(draft.sv[${i}].hd=draft.sv[${i}].hd||[]).push({k:'${k}',v:''});draft.sv[${i}].o=true;rSv()`;
+    return `<div class="sv ${x.r?'rec':''}"><div class="sr"><span class="dot ${x.st}"></span><input value="${esc(x.n)}" placeholder="Server name or source" oninput="draft.sv[${i}].n=this.value"><select aria-label="Quality" onchange="draft.sv[${i}].q=this.value"><option ${x.q=='HD'?'selected':''}>HD</option><option ${x.q=='SD'?'selected':''}>SD</option></select><button class="ib x" aria-label="Remove server" onclick="draft.sv.splice(${i},1);rSv()">&#10005;</button></div>
+  <input class="mono" value="${esc(x.u)}" placeholder="Stream link (.m3u8 or .mp4)" oninput="draft.sv[${i}].u=this.value">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><select style="width:auto" aria-label="Status" onchange="draft.sv[${i}].st=this.value;rSv()"><option value="g" ${x.st=='g'?'selected':''}>Stable</option><option value="y" ${x.st=='y'?'selected':''}>Average</option><option value="r" ${x.st=='r'?'selected':''}>Unstable</option></select><label class="rc"><input type="radio" name="rec" ${x.r?'checked':''} onchange="draft.sv.forEach((y,j)=>y.r=j==${i});rSv()">Recommended</label></div>
+  <details class="adv" ${x.o?'open':''} ontoggle="draft.sv[${i}].o=this.open"><summary>Proxy and headers${on?` <span class="pl2">${[x.px?'proxy':'',hd.length?hd.length+' header'+(hd.length>1?'s':''):'',x.dl!=null?'delay '+(x.dl?x.dl+'s':'off'):''].filter(Boolean).join(' · ')}</span>`:''}</summary>
+  <label class="rc"><input type="checkbox" ${x.px?'checked':''} onchange="draft.sv[${i}].px=this.checked;rSv()">Use the app's proxy for this server</label>
+  <div><label class="lab">Delay behind live</label><select onchange="draft.sv[${i}].dl=this.value===''?null:+this.value;rSv()"><option value="" ${x.dl==null?'selected':''}>App default (${DEF?DEF+'s':'Off'})</option>${[0,10,20,30].map(v=>`<option value="${v}" ${x.dl===v?'selected':''}>${v?v+'s':'Off'}</option>`).join('')}</select><p class="sub" style="margin:6px 0 0">Any delay above Off is served through the proxy so the app can stay behind live.</p></div>
+  <div><label class="lab">Headers sent when the app fetches this stream</label><div style="display:grid;gap:8px">${hd.map((h,j)=>`<div class="hr"><input class="mono" value="${esc(h.k)}" placeholder="Name" oninput="draft.sv[${i}].hd[${j}].k=this.value"><input class="mono" autocomplete="off" type="${SECRET(h.k)?'password':'text'}" value="${esc(h.v)}" placeholder="Value" oninput="draft.sv[${i}].hd[${j}].v=this.value"><button class="ib x" aria-label="Remove header" onclick="draft.sv[${i}].hd.splice(${j},1);rSv()">&#10005;</button></div>`).join('')}</div>
+  <div class="chips" style="margin:8px 0 0">${HN.filter(n=>!hd.some(h=>h.k.toLowerCase()==n.toLowerCase())).map(n=>`<button type="button" class="chip mini" onclick="${add(n)}">+ ${n}</button>`).join('')}<button type="button" class="chip mini" onclick="${add('')}">+ Custom</button></div>
+  <p class="sub" style="margin:8px 0 0">Only add what this source needs. Headers are private data, so publish to a private repository.</p></div></details></div>`}).join('')||'<div class="empty" style="border:1px dashed var(--line2);border-radius:14px;padding:20px">No servers yet. Add one so viewers can watch.</div>';
+}
+function saveEd(){
+  const ev=mode=='e',L=ev?E:H,n=ev?(T[draft.h]?T[draft.h][0]:draft.h)+' vs '+(T[draft.a]?T[draft.a][0]:draft.a):(draft.t||'Untitled');
+  if(isNew)L.push(draft);else L[L.findIndex(e=>e.id==draft.id)]=draft;
+  mark((isNew?'Added ':'Updated ')+(ev?'':'highlight ')+n);closeEd();render();toast(ev?'Event saved':'Highlight saved')
+}
+function closeEd(){$('#dr').classList.remove('on');$('#ov').classList.remove('on')}
+
+/* in-app sport and league picker */
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let opK='sport',opQ='',opA=0,opL=[];
+function opBuild(){
+  const q=opQ.trim().toLowerCase(),by=(a,b)=>a.n.localeCompare(b.n);let items,total,exact;
+  if(opK=='sport'){
+    total=SPORTS.length;exact=SPORTS.some(n=>n.toLowerCase()==q);
+    items=SPORTS.filter(n=>n.toLowerCase().includes(q)).map(n=>{const c=E.filter(e=>e.sport==n).length;return{n,t:c+' event'+(c==1?'':'s')}}).sort(by);
+  }else{
+    total=LG.length;exact=LG.some(l=>l.n.toLowerCase()==q);
+    const l=LG.filter(x=>x.n.toLowerCase().includes(q)),sp=draft.sport;
+    items=[...l.filter(x=>x.s==sp).map(x=>({n:x.n,t:x.s,g:sp||'Leagues'})).sort(by),...l.filter(x=>x.s!=sp).map(x=>({n:x.n,t:x.s,g:sp?'Other sports':'Leagues'})).sort(by)];
+  }
+  if(q&&!exact)items.unshift({add:true,n:opQ.trim()});
+  return{items,total};
+}
+function openOp(k){opK=k;opQ='';opA=0;$('#ops').value='';$('#opt').textContent=k=='sport'?'Choose a sport':'Choose a league';$('#ops').placeholder=k=='sport'?'Search or type a new sport':'Search or type a new league';$('#op').classList.add('on');renderOp();$('#ops').focus()}
+function closeOp(){$('#op').classList.remove('on')}
+function renderOp(scroll){
+  const {items,total}=opBuild(),cur=draft[opK];opL=items;
+  opA=Math.max(0,Math.min(opA,items.length-1));
+  $('#opc').textContent=`${items.filter(x=>!x.add).length} of ${total} ${opK=='sport'?'sports':'leagues'}`;
+  let last='';
+  $('#opl').innerHTML=items.map((x,i)=>{
+    const h=x.g&&x.g!=last?`<div class="tpg">${esc(x.g)}</div>`:'';if(x.g)last=x.g;
+    return h+(x.add?`<button type="button" class="tpr add ${i==opA?'act':''}" onclick="opPick(${i})"><span class="n">Add “${esc(x.n)}” as a new ${opK}</span><span class="ck">+</span></button>`
+    :`<button type="button" class="tpr ${x.n==cur?'sel':''} ${i==opA?'act':''}" onclick="opPick(${i})"><span class="n">${esc(x.n)}</span><span class="mono cd">${esc(x.t)}</span>${x.n==cur?'<span class="ck">&#10003;</span>':''}</button>`);
+  }).join('')||`<div class="empty">Nothing here yet. Type a name to add it.</div>`;
+  if(scroll){const a=$('#opl .act');a&&a.scrollIntoView({block:'nearest'})}
+}
+function opKey(e){
+  if(e.key=='ArrowDown'){e.preventDefault();opA=Math.min(opA+1,opL.length-1);renderOp(1)}
+  else if(e.key=='ArrowUp'){e.preventDefault();opA=Math.max(opA-1,0);renderOp(1)}
+  else if(e.key=='Enter'){e.preventDefault();if(opL.length)opPick(opA)}
+}
+function opPick(i){
+  const x=opL[i];if(!x)return;
+  if(x.add){
+    if(opK=='sport')SPORTS.push(x.n);else LG.push({n:x.n,s:draft.sport||''});
+    mark('Added '+opK+' '+x.n);toast(opK=='sport'?'Sport added':'League added');
+  }
+  draft[opK]=x.n;$('#op_'+opK).innerHTML=`<span>${esc(x.n)}</span>`;pv();closeOp();
+}
+
+/* in-app time picker */
+const pad=n=>String(n).padStart(2,'0'),DAYN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const midnight=(o=0)=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+o);return d};
+const dayOff=d=>{const x=new Date(d);x.setHours(0,0,0,0);return Math.max(0,Math.min(59,Math.round((x-midnight(0))/864e5)))};
+const tstr=d=>pad(d.getHours())+':'+pad(d.getMinutes());
+const fmtL=k=>{const d=new Date(k);return `${DAYN[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}, ${tstr(d)}`};
+const fmtS=k=>{const d=new Date(k),o=dayOff(d);return (o==0?'Today':o==1?'Tomorrow':d.getDate()+' '+MON[d.getMonth()])+' '+tstr(d)};
+function cd(k){const m=Math.round((new Date(k)-Date.now())/60000);if(m<=0)return'Starting now';if(m<60)return m+'m';if(m<1440)return Math.floor(m/60)+'h '+m%60+'m';return Math.floor(m/1440)+'d '+Math.floor(m%1440/60)+'h'}
+const defK=()=>{const d=new Date(Date.now()+36e5);d.setMinutes(Math.ceil(d.getMinutes()/5)*5,0,0);return d.toISOString()};
+const rng=(n,f)=>Array.from({length:n},(_,i)=>f?f(i):i);
+function tmSpec(mode,val){
+  if(mode=='minute'){
+    const [m,a]=String(val||'0').split('+').map(Number),out=i=>i[1]?`${i[0]}+${i[1]}`:`${i[0]}`;
+    return{title:'Match minute',hint:'Scroll, tap or use the arrow keys',cols:[{lab:'Minute',items:rng(131)},{lab:'Added time',items:['None',...rng(15,i=>'+'+(i+1))]}],idx:[Math.min(m||0,130),Math.min(a||0,15)],chips:[1,15,30,45,60,75,90].map(x=>({t:x+"'",v:[x,0]})),out,sum:i=>`${out(i)}' on the clock`};
+  }
+  if(mode=='duration'){
+    const [m,s]=String(val||'0:0').split(':').map(Number),out=i=>pad(i[0])+':'+pad(i[1]);
+    return{title:'Clip length',hint:'Scroll, tap or use the arrow keys',cols:[{lab:'Minutes',items:rng(180,pad)},{lab:'Seconds',items:rng(60,pad)}],idx:[Math.min(m||0,179),Math.min(s||0,59)],chips:[],out,sum:i=>`${out(i)} (${i[0]} min ${i[1]} sec)`};
+  }
+  const base=val?new Date(val):new Date(Date.now()+36e5);
+  const to=d=>[dayOff(d),d.getHours(),d.getMinutes()];
+  const out=i=>{const d=midnight(i[0]);d.setHours(i[1],i[2],0,0);return d.toISOString()};
+  const inH=h=>{const d=new Date(Date.now()+h*36e5);d.setMinutes(Math.round(d.getMinutes()/5)*5,0,0);return to(d)};
+  const tn=new Date();tn.setHours(20,0,0,0);if(tn<Date.now())tn.setDate(tn.getDate()+1);
+  const tm=midnight(1);tm.setHours(12,0,0,0);
+  return{title:'Kickoff time',hint:`Your local time (${Intl.DateTimeFormat().resolvedOptions().timeZone}). Saved in UTC.`,cols:[{lab:'Day',items:rng(60,i=>i==0?'Today':i==1?'Tomorrow':(d=>DAYN[d.getDay()]+' '+d.getDate()+' '+MON[d.getMonth()])(midnight(i)))},{lab:'Hour',items:rng(24,pad)},{lab:'Minute',items:rng(60,pad)}],idx:to(base),chips:[{t:'In 1 hour',v:inH(1)},{t:'In 3 hours',v:inH(3)},{t:'Tonight 20:00',v:to(tn)},{t:'Tomorrow 12:00',v:to(tm)}],out,sum:i=>{const k=out(i);return `${fmtL(k)}<small>${new Date(k)<Date.now()?'<span style="color:var(--r)">This time has already passed</span>':'Starts in '+cd(k)}</small>`}};
+}
+let tm=null;
+function openTm(mode,val,cb){
+  tm=tmSpec(mode,val);tm.cb=cb;$('#tmt').textContent=tm.title;$('#tms').textContent=tm.hint;
+  $('#tmc').innerHTML=tm.chips.map((c,j)=>`<button type="button" class="chip" onclick="tmChip(${j})">${c.t}</button>`).join('');$('#tmc').style.display=tm.chips.length?'flex':'none';
+  $('#whs').innerHTML=tm.cols.map(c=>`<div class="wc"><span class="lab">${c.lab}</span><div class="ww"><div class="wb"></div><div class="wh" tabindex="0" role="listbox" aria-label="${c.lab}"><div class="wp"></div>${c.items.map((t,i)=>`<div class="wi" data-i="${i}">${t}</div>`).join('')}<div class="wp"></div></div></div></div>`).join('');
+  $('#tm').classList.add('on');
+  document.querySelectorAll('#whs .wh').forEach((w,c)=>{
+    w.scrollTop=tm.idx[c]*40;let t;const n=tm.cols[c].items.length,cl=i=>Math.max(0,Math.min(n-1,i));
+    w.addEventListener('scroll',()=>{clearTimeout(t);t=setTimeout(()=>{tm.idx[c]=cl(Math.round(w.scrollTop/40));paintW()},60)});
+    w.addEventListener('click',e=>{const it=e.target.closest('.wi');if(it)w.scrollTo({top:it.dataset.i*40,behavior:'smooth'})});
+    w.addEventListener('keydown',e=>{if(e.key=='ArrowDown'||e.key=='ArrowUp'){e.preventDefault();w.scrollTo({top:cl(tm.idx[c]+(e.key=='ArrowDown'?1:-1))*40,behavior:'smooth'})}});
+  });
+  paintW();document.querySelector('#whs .wh').focus({preventScroll:true});
+}
+function paintW(){document.querySelectorAll('#whs .wh').forEach((w,c)=>w.querySelectorAll('.wi').forEach((x,i)=>x.classList.toggle('on',i==tm.idx[c])));$('#tsum').innerHTML=tm.sum(tm.idx)}
+function tmChip(j){tm.idx=[...tm.chips[j].v];document.querySelectorAll('#whs .wh').forEach((w,c)=>w.scrollTo({top:tm.idx[c]*40,behavior:'smooth'}));paintW()}
+function tmSet(){tm.cb(tm.out(tm.idx));closeTm()}
+function closeTm(){$('#tm').classList.remove('on')}
+function tf(){
+  const b=(l,t,f)=>`<label class="lab">${l}</label><button type="button" class="tpb tk" onclick="${f}"><span>${t}</span></button>`;
+  if(draft.s=='live')return b('Minute',draft.w!==''?draft.w+"'":'Set minute',"openTm('minute',draft.w,v=>{draft.w=v;tsync()})");
+  if(draft.s=='upcoming')return b('Kickoff',draft.k?fmtL(draft.k):'Set kickoff',"openTm('kickoff',draft.k,v=>{draft.k=v;tsync()})");
+  return `<label class="lab">Time</label><button type="button" class="tpb" disabled><span>Not needed after full time</span></button>`;
+}
+function tsync(){$('#tf').innerHTML=tf();pv()}
+function setStatus(v){draft.s=v;if(v=='live'&&(draft.w===''||draft.w==null))draft.w='0';if(v=='upcoming'&&!draft.k)draft.k=defK();tsync()}
+
+/* in-app team picker */
+let tpSide='h',tpq='',tpa=0;
+const tpi=s=>`${bd(draft[s])}<span>${T[draft[s]]?T[draft[s]][0]:draft[s]}</span>`;
+const tpList=()=>Object.keys(T).filter(c=>(T[c][0]+' '+c).toLowerCase().includes(tpq.trim().toLowerCase())).sort((a,b)=>T[a][0].localeCompare(T[b][0]));
+function openTp(s){tpSide=s;tpq='';tpa=0;$('#tps').value='';$('#tpt').textContent=s=='h'?'Choose the home team':'Choose the away team';$('#tp').classList.add('on');renderTp();$('#tps').focus()}
+function closeTp(){$('#tp').classList.remove('on')}
+function renderTp(scroll){
+  const l=tpList(),other=draft[tpSide=='h'?'a':'h'];
+  $('#tpc').textContent=`${l.length} of ${Object.keys(T).length} teams`;
+  $('#tpl').innerHTML=l.map((c,i)=>`<button type="button" class="tpr ${c==draft[tpSide]?'sel':''} ${i==tpa?'act':''}" ${c==other?'disabled':''} onclick="pickTeam('${c}')">${bd(c)}<span class="n">${T[c][0]}</span><span class="mono cd">${c==other?'Already selected':c}</span>${c==draft[tpSide]?'<span class="ck">&#10003;</span>':''}</button>`).join('')||`<div class="tpn"><p>No team matches <b>${tpq.replace(/</g,'&lt;')}</b>. Add it and it will be selected for you.</p><div class="f2"><input id="tac" maxlength="4" placeholder="Code, e.g. CC" style="text-transform:uppercase"><input id="tan" value="${tpq.replace(/"/g,'&quot;')}" placeholder="Team name"></div><button class="btn" onclick="tpAdd()">Add and select</button></div>`;
+  if(scroll){const a=$('#tpl .act');a&&a.scrollIntoView({block:'nearest'})}
+}
+function tpKey(e){
+  const l=tpList(),other=draft[tpSide=='h'?'a':'h'];
+  if(e.key=='ArrowDown'){e.preventDefault();tpa=Math.min(tpa+1,l.length-1);renderTp(1)}
+  else if(e.key=='ArrowUp'){e.preventDefault();tpa=Math.max(tpa-1,0);renderTp(1)}
+  else if(e.key=='Enter'){e.preventDefault();const c=l[tpa];if(c&&c!=other)pickTeam(c)}
+}
+function pickTeam(c){draft[tpSide]=c;$('#tp_'+tpSide).innerHTML=tpi(tpSide);pv();closeTp()}
+function tpAdd(){
+  const c=$('#tac').value.trim().toUpperCase(),n=$('#tan').value.trim();
+  if(!c||!n)return toast('Enter a code and a team name',1);
+  if(T[c])return toast('The code '+c+' is already used',1);
+  T[c]=[n,''];mark('Added team '+n);pickTeam(c);toast('Team added. Add its badge on the Teams page')
+}
+
+/* delete confirmation */
+function askDel(k,id){
+  const ev=k=='e',it=(ev?E:H).find(x=>x.id==id),vsn=(T[it.h]?T[it.h][0]:it.h)+' vs '+(T[it.a]?T[it.a][0]:it.a),nm=ev?vsn:`${it.t||'Untitled'} (${vsn})`,n=it.sv.length;
+  $('#cft').textContent=ev?'Delete this event?':'Delete this highlight?';
+  $('#cfb').innerHTML=`<b>${nm}</b>${n?` and its ${n} ${ev?'server':'source'}${n>1?'s':''}`:''} will be removed from the app once you publish. To bring it back later you would have to revert the commit on GitHub.`;
+  $('#cfy').textContent=ev?'Delete event':'Delete highlight';
+  pend=()=>{if(ev)E=E.filter(x=>x.id!=id);else H=H.filter(x=>x.id!=id);mark('Removed '+(ev?'':'highlight ')+nm);closeEd();render();toast(ev?'Event deleted':'Highlight deleted')};
+  $('#cf').classList.add('on');$('#cfn').focus();
+}
+function closeCf(){$('#cf').classList.remove('on')}
+document.addEventListener('keydown',e=>{if(e.key=='Escape'){if($('#cf').classList.contains('on'))closeCf();else if($('#tp').classList.contains('on'))closeTp();else if($('#tm').classList.contains('on'))closeTm();else if($('#op').classList.contains('on'))closeOp();else closeEd()}});
+render();
+</script>
+</body>
+</html>
