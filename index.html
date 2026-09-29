@@ -473,28 +473,46 @@ async function doPush(){
   const apiUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/content.json`;
   const headers = {
     'Authorization': `token ${ghToken}`,
-    'Accept': 'application/vnd.github.v3+json'
+    'Accept': 'application/vnd.github.v3+json',
+    'Cache-Control': 'no-cache'
   };
 
   try {
+    // STEP 1: Fetch current file SHA (required for updates)
     let sha = null;
-    const getRes = await fetch(apiUrl, { headers });
-    if (getRes.ok) {
-      const fileData = await getRes.json();
-      sha = fileData.sha;
-    } else if (getRes.status !== 404) {
-      const errData = await getRes.json();
-      throw new Error(errData.message || `Failed to fetch file info: ${getRes.statusText}`);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const getRes = await fetch(apiUrl + '?t=' + Date.now(), { headers, cache: 'no-store' });
+        
+        if (getRes.ok) {
+          const fileData = await getRes.json();
+          sha = fileData.sha;
+          break;
+        } else if (getRes.status === 404) {
+          sha = null;
+          break;
+        } else if (getRes.status === 401 || getRes.status === 403) {
+          throw new Error('Token rejected. Check your PAT has "repo" scope.');
+        } else if (attempt === 2) {
+          throw new Error(`Could not fetch file info (HTTP ${getRes.status})`);
+        }
+      } catch (e) {
+        if (attempt === 2) throw e;
+      }
+      await new Promise(r => setTimeout(r, 400));
     }
+
+    // STEP 2: Build the request body
+    const body = {
+      message: `Admin panel update (${ch.length} changes)`,
+      content: btoa(unescape(encodeURIComponent(data))),
+    };
+    if (sha) body.sha = sha;
 
     const putRes = await fetch(apiUrl, {
       method: 'PUT',
       headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: `Admin panel update (${ch.length} changes)`,
-        content: btoa(unescape(encodeURIComponent(data))),
-        sha: sha || undefined
-      })
+      body: JSON.stringify(body)
     });
 
     if (!putRes.ok) {
@@ -502,6 +520,7 @@ async function doPush(){
       throw new Error(errorData.message || 'Push failed');
     }
 
+    // STEP 3: Success
     const n = ch.length;
     ch = [];
     render();
