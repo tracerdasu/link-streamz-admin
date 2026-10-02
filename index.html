@@ -188,6 +188,7 @@ pre{margin:0;background:#000;border:1px solid var(--line);border-radius:12px;pad
 .warn.bad{border-color:rgba(255,77,77,.55);background:rgba(255,77,77,.08)}.warn.bad b{color:var(--r)}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,102,0,.3);border-top-color:var(--o);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
+.split-hint{color:var(--mut);font-size:12px;margin:0 0 6px}
 @media(max-width:1100px){.two{grid-template-columns:1fr}}
 @media(max-width:600px){.tp{place-items:end center;padding:0}.tpc{width:100%;height:88vh;height:88dvh;border-radius:22px 22px 0 0;padding-bottom:calc(16px + env(safe-area-inset-bottom))}}
 @media(max-width:860px){
@@ -288,7 +289,7 @@ const mark=m=>{if(!ch.includes(m))ch.push(m);pill()};
 const toast=(m,bad)=>{const t=$('#toast');t.innerHTML=`<span class="dot ${bad?'r':'g'}"></span>`+m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2600)};
 const pill=()=>{const p=$('#pill');p.className='pill'+(ch.length?'':' clean');p.innerHTML=ch.length?`<span class="dot" style="background:var(--o)"></span>${ch.length} unpublished change${ch.length>1?'s':''}`:'All changes published'};
 const go=v=>{view=v;render()};
-const vs=(a,w)=>a.length?a.map(x=>`<span class="dot ${x.st}"></span>`).join('')+`<span>${a.length} ${w}${a.length>1?'s':''}</span>`+(a.some(x=>x.px)?'<span class="pl2" style="margin-left:2px">proxy</span>':''):`<span style="color:var(--y)">No ${w}s</span>`;
+const vs=(a,w)=>a.length?a.map(x=>`<span class="dot ${x.st}"></span>`).join('')+`<span>${a.length} ${w}${a.length>1?'s':''}</span>`+(a.some(x=>x.px)?'<span class="pl2" style="margin-left:2px">proxy</span>':'')+(a.some(x=>x.au)?'<span class="pl2" style="margin-left:2px">split</span>':''):`<span style="color:var(--y)">No ${w}s</span>`;
 const mt=x=>`${bd(x.h)}<span>${T[x.h]?T[x.h][0]:x.h}</span><span style="color:var(--faint)">vs</span><span>${T[x.a]?T[x.a][0]:x.a}</span>${bd(x.a)}`;
 
 function render(){
@@ -335,7 +336,7 @@ function addTeam(){
 }
 
 function rPub(){
-  const sj=a=>a.map(x=>({name:x.n,url:x.u,quality:x.q,status:{g:'stable',y:'average',r:'unstable'}[x.st],recommended:x.r,useProxy:!!x.px,delaySeconds:x.dl??null,headers:Object.fromEntries((x.hd||[]).filter(h=>h.k.trim()).map(h=>[h.k.trim(),SECRET(h.k)?'••••••':h.v]))}));
+  const sj=a=>a.map(x=>({name:x.n,url:x.u,quality:x.q,audio:x.au||undefined,status:{g:'stable',y:'average',r:'unstable'}[x.st],recommended:x.r,useProxy:!!x.px,delaySeconds:x.dl??null,headers:Object.fromEntries((x.hd||[]).filter(h=>h.k.trim()).map(h=>[h.k.trim(),SECRET(h.k)?'••••••':h.v]))}));
   const sec=[...E,...H].some(x=>x.sv.some(v=>(v.hd||[]).some(h=>h.k.trim()))),block=sec&&pubRepo;
   const warn=sec?`<div class="warn ${pubRepo?'bad':''}"><b>${pubRepo?'Publishing is blocked':'Some servers include headers or tokens'}</b><span>${pubRepo?'The repository is public, so anyone could read your stream headers. Switch it to private to publish.':'Keep the repository private so only your app and this console can read them.'}</span></div>`:'';
   const data=JSON.stringify({settings:{defaultDelaySeconds:DEF},sports:SPORTS,leagues:LG.map(l=>({name:l.n,sport:l.s})),teams:Object.entries(T).map(([code,[name,badge]])=>({code,name,badge})),events:E.map(e=>({id:e.id,league:e.league,sport:e.sport,home:e.h,away:e.a,status:e.s,...(e.s=='live'?{minute:e.w}:e.s=='upcoming'?{kickoff:e.k}:{}),servers:sj(e.sv)})),highlights:H.map(x=>({id:x.id,title:x.t,home:x.h,away:x.a,length:x.d,servers:sj(x.sv)}))},null,2);
@@ -431,6 +432,7 @@ function svFromJson(s){
   const statusMap = {stable:'g', average:'y', unstable:'r'};
   return {
     n: s.name, u: s.url, q: s.quality,
+    au: s.audio || s.audioUrl || s.audioSrc || s.audio_url || s.audioLink || '',
     st: statusMap[s.status] || 'g',
     r: !!s.recommended,
     px: !!s.useProxy,
@@ -449,13 +451,18 @@ async function doPush(){
   pb.textContent = 'Pushing...';
   pb.disabled = true;
 
-  const sj = a => a.map(x => ({
-    name: x.n, url: x.u, quality: x.q,
-    status: { g: 'stable', y: 'average', r: 'unstable' }[x.st],
-    recommended: x.r, useProxy: !!x.px,
-    delaySeconds: x.dl ?? null,
-    headers: Object.fromEntries((x.hd || []).filter(h => h.k.trim()).map(h => [h.k.trim(), SECRET(h.k) ? '••••••' : h.v]))
-  }));
+  const sj = a => a.map(x => {
+    const entry = {
+      name: x.n, url: x.u, quality: x.q,
+      status: { g: 'stable', y: 'average', r: 'unstable' }[x.st],
+      recommended: x.r, useProxy: !!x.px,
+      delaySeconds: x.dl ?? null,
+      headers: Object.fromEntries((x.hd || []).filter(h => h.k.trim()).map(h => [h.k.trim(), SECRET(h.k) ? '••••••' : h.v]))
+    };
+    // Only include audio when it's non-empty, so old entries stay byte-identical
+    if (x.au && x.au.trim()) entry.audio = x.au.trim();
+    return entry;
+  });
   
   const data = JSON.stringify({
     settings: { defaultDelaySeconds: DEF },
@@ -477,7 +484,6 @@ async function doPush(){
   };
 
   try {
-    // STEP 1: Fetch current file SHA (required for updates)
     let sha = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
@@ -501,7 +507,6 @@ async function doPush(){
       await new Promise(r => setTimeout(r, 400));
     }
 
-    // STEP 2: Build the request body
     const body = {
       message: `Admin panel update (${ch.length} changes)`,
       content: btoa(unescape(encodeURIComponent(data))),
@@ -519,7 +524,6 @@ async function doPush(){
       throw new Error(errorData.message || 'Push failed');
     }
 
-    // STEP 3: Success
     const n = ch.length;
     ch = [];
     render();
@@ -558,7 +562,7 @@ function showEd(){
   $('#dr').innerHTML=`<div class="dh"><h2>${isNew?(ev?'New event':'New highlight'):(ev?'Edit event':'Edit highlight')}</h2><button class="ib" aria-label="Close" onclick="closeEd()">&#10005;</button></div>
   <div class="db"><div><label class="lab">How it looks in the app</label><div id="pv">${(ev?prev:prevH)(draft)}</div></div>
   <div class="f2">${fields}</div>
-  <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><b style="flex:1">${ev?'Servers':'Servers and sources'}</b><button class="btn gh" style="padding:7px 12px" onclick="draft.sv.push({n:'Server '+(draft.sv.length+1),u:'https://',q:'SD',st:'g',r:!draft.sv.length,px:false,dl:null,hd:[]});rSv()">Add server</button></div>${ev?'':'<p class="sub" style="margin:0 0 10px">Add the same clip from different sources, for example your CDN and a mirror.</p>'}<div id="sl" style="display:grid;gap:10px"></div></div></div>
+  <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><b style="flex:1">${ev?'Servers':'Servers and sources'}</b><button class="btn gh" style="padding:7px 12px" onclick="draft.sv.push({n:'Server '+(draft.sv.length+1),u:'https://',au:'',q:'SD',st:'g',r:!draft.sv.length,px:false,dl:null,hd:[]});rSv()">Add server</button></div>${ev?'':'<p class="sub" style="margin:0 0 10px">Add the same clip from different sources, for example your CDN and a mirror.</p>'}<div id="sl" style="display:grid;gap:10px"></div></div></div>
   <div class="df"><button class="btn" onclick="saveEd()">${ev?'Save event':'Save highlight'}</button><button class="btn gh" onclick="closeEd()">Cancel</button>${isNew?'':`<button class="btn rd" style="margin-left:auto" onclick="askDel('${mode}',${draft.id})">Delete</button>`}</div>`;
   rSv();$('#dr').classList.add('on');$('#ov').classList.add('on');
 }
@@ -567,8 +571,9 @@ function rSv(){
   $('#sl').innerHTML=draft.sv.map((x,i)=>{
     const hd=x.hd||[],on=x.px||x.dl!=null||hd.length,add=k=>`(draft.sv[${i}].hd=draft.sv[${i}].hd||[]).push({k:'${k}',v:''});draft.sv[${i}].o=true;rSv()`;
     return `<div class="sv ${x.r?'rec':''}"><div class="sr"><span class="dot ${x.st}"></span><input value="${esc(x.n)}" placeholder="Server name or source" oninput="draft.sv[${i}].n=this.value"><select aria-label="Quality" onchange="draft.sv[${i}].q=this.value"><option ${x.q=='HD'?'selected':''}>HD</option><option ${x.q=='SD'?'selected':''}>SD</option></select><button class="ib x" aria-label="Remove server" onclick="draft.sv.splice(${i},1);rSv()">&#10005;</button></div>
-  <input class="mono" value="${esc(x.u)}" placeholder="Stream link (.m3u8 or .mp4)" oninput="draft.sv[${i}].u=this.value">
-  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><select style="width:auto" aria-label="Status" onchange="draft.sv[${i}].st=this.value;rSv()"><option value="g" ${x.st=='g'?'selected':''}>Stable</option><option value="y" ${x.st=='y'?'selected':''}>Average</option><option value="r" ${x.st=='r'?'selected':''}>Unstable</option></select><label class="rc"><input type="radio" name="rec" ${x.r?'checked':''} onchange="draft.sv.forEach((y,j)=>y.r=j==${i});rSv()">Recommended</label></div>
+  <input class="mono" value="${esc(x.u)}" placeholder="Video stream link (.m3u8 or .mp4)" oninput="draft.sv[${i}].u=this.value">
+  <div><p class="split-hint">If this source serves video and audio separately (common for YouTube-extracted streams), paste the audio URL below. Leave blank if the video link already contains audio.</p><input class="mono" value="${esc(x.au||'')}" placeholder="Audio track link (optional)" oninput="draft.sv[${i}].au=this.value"></div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><select style="width:auto" aria-label="Status" onchange="draft.sv[${i}].st=this.value;rSv()"><option value="g" ${x.st=='g'?'selected':''}>Stable</option><option value="y" ${x.st=='y'?'selected':''}>Average</option><option value="r" ${x.st=='r'?'selected':''}>Unstable</option></select><label class="rc"><input type="radio" name="rec" ${x.r?'checked':''} onchange="draft.sv.forEach((y,j)=>y.r=j==${i});rSv()">Recommended</label>${x.au&&x.au.trim()?'<span class="pl2">split streams</span>':''}</div>
   <details class="adv" ${x.o?'open':''} ontoggle="draft.sv[${i}].o=this.open"><summary>Proxy and headers${on?` <span class="pl2">${[x.px?'proxy':'',hd.length?hd.length+' header'+(hd.length>1?'s':''):'',x.dl!=null?'delay '+(x.dl?x.dl+'s':'off'):''].filter(Boolean).join(' · ')}</span>`:''}</summary>
   <label class="rc"><input type="checkbox" ${x.px?'checked':''} onchange="draft.sv[${i}].px=this.checked;rSv()">Use the app's proxy for this server</label>
   <div><label class="lab">Delay behind live</label><select onchange="draft.sv[${i}].dl=this.value===''?null:+this.value;rSv()"><option value="" ${x.dl==null?'selected':''}>App default (${DEF?DEF+'s':'Off'})</option>${[0,10,20,30].map(v=>`<option value="${v}" ${x.dl===v?'selected':''}>${v?v+'s':'Off'}</option>`).join('')}</select><p class="sub" style="margin:6px 0 0">Any delay above Off is served through the proxy so the app can stay behind live.</p></div>
