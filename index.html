@@ -524,6 +524,24 @@ async function doPush(){
       throw new Error(errorData.message || 'Push failed');
     }
 
+    // ── Trigger the public repo's sync workflow ──────────────────────
+    // Fires a repository_dispatch event so the public mirror updates
+    // immediately instead of waiting for the 30-minute cron.
+    try {
+      await fetch(`https://api.github.com/repos/tracerdasu/link-streamz-public/dispatches`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${ghToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ event_type: 'sync-content' })
+      });
+    } catch (e) {
+      console.warn('Sync trigger failed (non-fatal):', e);
+    }
+    // ─────────────────────────────────────────────────────────────────
+
     const n = ch.length;
     ch = [];
     render();
