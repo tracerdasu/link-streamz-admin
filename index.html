@@ -213,6 +213,34 @@ pre{margin:0;background:#000;border:1px solid var(--line);border-radius:12px;pad
  .search{max-width:none;flex-basis:100%;margin-left:0;order:9}
 }
 @media(max-width:480px){.f2{grid-template-columns:1fr}.top h1{font-size:20px}.dh,.db,.df{padding-left:14px;padding-right:14px}.df .btn{flex:1}}
+
+/* movies, series and channels */
+.mv{grid-template-columns:1.6fr 1.3fr 100px 140px 84px}
+.cn{grid-template-columns:1.5fr 1.2fr 1.4fr 140px 84px}
+.mi{display:flex;align-items:center;gap:11px;min-width:0}
+.mi>div{min-width:0}
+.mi b{display:block;color:var(--tx);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi small{display:block;color:var(--mut);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.th56{width:58px;aspect-ratio:16/10;border-radius:8px;flex:none;overflow:hidden;background:linear-gradient(135deg,#1c1c1c,#0a0a0a);border:1px solid var(--line);display:block}
+.th56 img{width:100%;height:100%;object-fit:cover;display:block}
+.cb{width:44px;height:44px;border-radius:12px;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-size:12px;letter-spacing:.04em;border:1px solid rgba(255,255,255,.12);text-shadow:0 1px 4px rgba(0,0,0,.45)}
+.cb.cbl{width:72px;height:72px;border-radius:16px;font-size:20px}
+input[type=color]{padding:3px;height:40px;cursor:pointer}
+.mpv{display:flex;gap:12px;align-items:center}
+.mth{position:relative;width:128px;aspect-ratio:16/10;border-radius:12px;flex:none;overflow:hidden;background:linear-gradient(135deg,#1c1c1c,#0a0a0a);border:1px solid var(--line)}
+.mth img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.mth .tg{position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;background:rgba(255,102,0,.16);color:var(--o);border:1px solid rgba(255,102,0,.3)}
+.mth .du{position:absolute;left:6px;bottom:6px;font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.mti{min-width:0;display:grid;gap:3px}
+.mti b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mti small{color:var(--mut);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live{justify-self:start;font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:5px;background:#FF3B30;color:#fff}
+.sh{display:flex;align-items:center;gap:10px}
+.ep{display:grid;gap:8px;padding:10px 0 4px;border-top:1px solid var(--line)}
+.epr{display:grid;grid-template-columns:30px 1fr 84px 36px;gap:8px;align-items:center}
+.epn{color:var(--o);text-align:center}
+@media(max-width:760px){.mv,.cn{grid-template-areas:"t ac" "m m" "d sv"}}
+.toast{pointer-events:none}
 </style>
 </head>
 <body>
@@ -273,6 +301,8 @@ let T = {};
 let E = []; 
 let H = []; 
 let DEF = 20;
+let MV = [];   // movies and series
+let CHN = [];  // channels
 
 // Pre-filled dropdown suggestions for forms
 const SPORTS=['Football','Basketball','Cricket','Tennis','Rugby','Baseball','American football','Ice hockey','Volleyball','Motorsport'];
@@ -283,7 +313,7 @@ let view='events',filter='all',q='',ch=[],draft=null,isNew=false,mode='e',pend=(
 let loaded = false;
 // ──────────────────────────────────────────────────────────────────────
 
-const ICO={events:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M8 14h3"/></svg>',highlights:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z"/></svg>',teams:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5a3 3 0 010 6M21 20c0-2.6-1.5-4.6-3.5-5.5"/></svg>',publish:'<svg viewBox="0 0 24 24"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>'};
+const ICO={events:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M8 14h3"/></svg>',highlights:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z"/></svg>',teams:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5a3 3 0 010 6M21 20c0-2.6-1.5-4.6-3.5-5.5"/></svg>',movies:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 5v4M17 5v4"/></svg>',channels:'<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 21h8M12 18v3"/></svg>',publish:'<svg viewBox="0 0 24 24"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>'};
 const bd=(c,id)=>`<span class="bd"${id?` id="${id}"`:''}>${T[c]&&T[c][1]?`<img src="${T[c][1]}" alt="" onerror="this.parentNode.textContent='${c}'">`:c}</span>`;
 const mark=m=>{if(!ch.includes(m))ch.push(m);pill()};
 const toast=(m,bad)=>{const t=$('#toast');t.innerHTML=`<span class="dot ${bad?'r':'g'}"></span>`+m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2600)};
@@ -293,13 +323,13 @@ const vs=(a,w)=>a.length?a.map(x=>`<span class="dot ${x.st}"></span>`).join('')+
 const mt=x=>`${bd(x.h)}<span>${T[x.h]?T[x.h][0]:x.h}</span><span style="color:var(--faint)">vs</span><span>${T[x.a]?T[x.a][0]:x.a}</span>${bd(x.a)}`;
 
 function render(){
-  const N={events:E.length,highlights:H.length,teams:Object.keys(T).length};
-  const L={events:'Events',highlights:'Highlights',teams:'Teams',publish:'Publish'};
+  const N={events:E.length,highlights:H.length,movies:MV.length,channels:CHN.length,teams:Object.keys(T).length};
+  const L={events:'Events',highlights:'Highlights',movies:'Movies',channels:'Channels',teams:'Teams',publish:'Publish'};
   $('#nav').innerHTML=Object.keys(L).map(k=>`<button class="nav ${view==k?'on':''}" onclick="go('${k}')">${ICO[k]}${L[k]}<em>${N[k]??''}</em></button>`).join('');
   const nb=Object.values(T).filter(t=>!t[1]).length;
-  const S={events:'What appears on the app home screen',highlights:'Clips in the Highlights tab, each with one or more sources',teams:nb?`${nb} team${nb>1?'s':''} still need a badge link`:'Team names and badge images',publish:'Send your changes to GitHub so the app updates'};
+  const S={events:'What appears on the app home screen',highlights:'Clips in the Highlights tab, each with one or more sources',movies:'Movies and series shown in the Movies section',channels:'Live TV channels shown in the Channels section',teams:nb?`${nb} team${nb>1?'s':''} still need a badge link`:'Team names and badge images',publish:'Send your changes to GitHub so the app updates'};
   $('#ttl').textContent=L[view];$('#sub').textContent=S[view];
-  $('#view').innerHTML={events:rEvents,highlights:rHl,teams:rTeams,publish:rPub}[view]();pill();
+  $('#view').innerHTML={events:rEvents,highlights:rHl,movies:rMovies,channels:rChannels,teams:rTeams,publish:rPub}[view]();pill();
 }
 
 function rEvents(){
@@ -337,9 +367,9 @@ function addTeam(){
 
 function rPub(){
   const sj=a=>a.map(x=>({name:x.n,url:x.u,quality:x.q,audio:x.au||undefined,status:{g:'stable',y:'average',r:'unstable'}[x.st],recommended:x.r,useProxy:!!x.px,delaySeconds:x.dl??null,headers:Object.fromEntries((x.hd||[]).filter(h=>h.k.trim()).map(h=>[h.k.trim(),SECRET(h.k)?'••••••':h.v]))}));
-  const sec=[...E,...H].some(x=>x.sv.some(v=>(v.hd||[]).some(h=>h.k.trim()))),block=sec&&pubRepo;
+  const sec=[...E,...H,...MV,...CHN].some(x=>(x.sv||[]).some(v=>(v.hd||[]).some(h=>h.k.trim()))),block=sec&&pubRepo;
   const warn=sec?`<div class="warn ${pubRepo?'bad':''}"><b>${pubRepo?'Publishing is blocked':'Some servers include headers or tokens'}</b><span>${pubRepo?'The repository is public, so anyone could read your stream headers. Switch it to private to publish.':'Keep the repository private so only your app and this console can read them.'}</span></div>`:'';
-  const data=JSON.stringify({settings:{defaultDelaySeconds:DEF},sports:SPORTS,leagues:LG.map(l=>({name:l.n,sport:l.s})),teams:Object.entries(T).map(([code,[name,badge]])=>({code,name,badge})),events:E.map(e=>({id:e.id,league:e.league,sport:e.sport,home:e.h,away:e.a,status:e.s,...(e.s=='live'?{minute:e.w}:e.s=='upcoming'?{kickoff:e.k}:{}),servers:sj(e.sv)})),highlights:H.map(x=>({id:x.id,title:x.t,home:x.h,away:x.a,length:x.d,servers:sj(x.sv)}))},null,2);
+  const data=JSON.stringify({settings:{defaultDelaySeconds:DEF},sports:SPORTS,leagues:LG.map(l=>({name:l.n,sport:l.s})),teams:Object.entries(T).map(([code,[name,badge]])=>({code,name,badge})),events:E.map(e=>({id:e.id,league:e.league,sport:e.sport,home:e.h,away:e.a,status:e.s,...(e.s=='live'?{minute:e.w}:e.s=='upcoming'?{kickoff:e.k}:{}),servers:sj(e.sv)})),highlights:H.map(x=>({id:x.id,title:x.t,home:x.h,away:x.a,length:x.d,servers:sj(x.sv)})),...mvOut(sj),channels:chOut(sj)},null,2);
   
   const isReady = ghUser && ghRepo && ghToken;
 
@@ -356,7 +386,7 @@ function rPub(){
   </div>
 
   <div class="panel"><h2>Stream defaults</h2><p class="sub" style="margin-bottom:10px">Used by any server that does not set its own delay</p><label class="lab">Default delay behind live</label><select onchange="DEF=+this.value;mark('Changed default delay to '+(DEF?DEF+'s':'off'));render()">${[0,10,20,30].map(v=>`<option value="${v}" ${DEF==v?'selected':''}>${v?v+' seconds':'Off'}</option>`).join('')}</select></div>
-  <div class="panel"><h2>Pending changes</h2><p class="sub">${ch.length?'These will be committed together.':'Nothing to publish. Edit an event, highlight or team first.'}</p><ul class="chg">${ch.map(m=>`<li>${m}</li>`).join('')}</ul></div>
+  <div class="panel"><h2>Pending changes</h2><p class="sub">${ch.length?'These will be committed together.':'Nothing to publish. Edit an event, highlight, movie, channel or team first.'}</p><ul class="chg">${ch.map(m=>`<li>${m}</li>`).join('')}</ul></div>
   <div class="panel"><h2>Commit</h2><label class="lab" style="margin-top:12px">Message</label><input id="cm" value="Update content (${ch.length} change${ch.length==1?'':'s'})"><div class="f2" style="margin-top:12px"><div><label class="lab">Repository</label><input value="${ghRepo || 'Not set'}" readonly></div><div><label class="lab">Branch</label><select><option>main</option><option>staging</option></select></div><div><label class="lab">Repository visibility</label><select onchange="pubRepo=this.value=='Public';render()"><option ${pubRepo?'':'selected'}>Private</option><option ${pubRepo?'selected':''}>Public</option></select></div></div>
   <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap"><button class="btn" id="pb" ${ch.length&&!block&&isReady?'':'disabled style="opacity:.4;cursor:not-allowed"'} onclick="doPush()">Commit and push</button><button class="btn gh" onclick="ch=[];render();toast('Changes discarded')">Discard all</button></div>
   <p class="sub" style="margin-top:12px">The app reads <span class="mono">content.json</span> from GitHub, so it updates after the push.</p></div></div>
@@ -384,7 +414,7 @@ async function loadFromGitHub(manual){
       }
     });
     if (res.status === 404) {
-      T = {}; E = []; H = []; DEF = 20;
+      T = {}; E = []; H = []; MV = []; CHN = []; DEF = 20;
       loaded = true;
       updateRepoBadge();
       render();
@@ -399,6 +429,11 @@ async function loadFromGitHub(manual){
     }
     const text = await res.text();
     const data = JSON.parse(text);
+    MV = [
+      ...(Array.isArray(data.movies) ? data.movies.map(mvFromJson) : []),
+      ...(Array.isArray(data.series) ? data.series.map(seFromJson) : [])
+    ];
+    CHN = Array.isArray(data.channels) ? data.channels.map(chFromJson) : [];
 
     if (data.settings && typeof data.settings.defaultDelaySeconds === 'number') DEF = data.settings.defaultDelaySeconds;
     if (Array.isArray(data.leagues) && data.leagues.length) LG = data.leagues.map(l => ({n:l.name,s:l.sport}));
@@ -418,7 +453,7 @@ async function loadFromGitHub(manual){
     loaded = true;
     updateRepoBadge();
     render();
-    toast(`Loaded ${E.length} events, ${H.length} highlights, ${Object.keys(T).length} teams`);
+    toast(`Loaded ${E.length} events, ${H.length} highlights, ${MV.length} movies/series, ${CHN.length} channels, ${Object.keys(T).length} teams`);
   } catch (err) {
     loaded = true;
     updateRepoBadge();
@@ -474,7 +509,9 @@ async function doPush(){
       ...(e.s == 'live' ? { minute: e.w } : e.s == 'upcoming' ? { kickoff: e.k } : {}),
       servers: sj(e.sv)
     })),
-    highlights: H.map(x => ({ id: x.id, title: x.t, home: x.h, away: x.a, length: x.d, servers: sj(x.sv) }))
+    highlights: H.map(x => ({ id: x.id, title: x.t, home: x.h, away: x.a, length: x.d, servers: sj(x.sv) })),
+    ...mvOut(sj),
+    channels: chOut(sj)
   }, null, 2);
 
   const apiUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/content.json`;
@@ -732,6 +769,7 @@ function tpAdd(){
 
 /* delete confirmation */
 function askDel(k,id){
+  if(k=='m'||k=='c')return askDelX(k,id);
   const ev=k=='e',it=(ev?E:H).find(x=>x.id==id),vsn=(T[it.h]?T[it.h][0]:it.h)+' vs '+(T[it.a]?T[it.a][0]:it.a),nm=ev?vsn:`${it.t||'Untitled'} (${vsn})`,n=it.sv.length;
   $('#cft').textContent=ev?'Delete this event?':'Delete this highlight?';
   $('#cfb').innerHTML=`<b>${nm}</b>${n?` and its ${n} ${ev?'server':'source'}${n>1?'s':''}`:''} will be removed from the app once you publish. To bring it back later you would have to revert the commit on GitHub.`;
@@ -741,6 +779,161 @@ function askDel(k,id){
 }
 function closeCf(){$('#cf').classList.remove('on')}
 document.addEventListener('keydown',e=>{if(e.key=='Escape'){if($('#cf').classList.contains('on'))closeCf();else if($('#tp').classList.contains('on'))closeTp();else if($('#tm').classList.contains('on'))closeTm();else if($('#op').classList.contains('on'))closeOp();else closeEd()}});
+
+/* ═══════════ Movies, series and channels ═══════════ */
+let mq='',cq='',mfilter='all',cfilter='all';
+const GENRES=['ACTION','ADVENTURE','ANIMATION','COMEDY','CRIME','DOCUMENTARY','DRAMA','FANTASY','HORROR','MYSTERY','ROMANCE','SCI-FI','THRILLER','WESTERN'];
+const CATS=['General','News','Sports','Entertainment','Kids','Music'];
+const CTRY=['Uganda','Kenya','Tanzania','Rwanda','South Africa','Nigeria','UK','USA','France','Germany','Qatar','India','China','Japan','Korea','Russia'];
+const hex=v=>/^#[0-9a-f]{6}$/i.test(v||'')?v:'#444444';
+const isLocalCh=c=>String(c.country).trim().toLowerCase()=='uganda';
+const iniOf=n=>{const w=String(n).trim().split(/\s+/).filter(Boolean);return(w.length>1?w.slice(0,3).map(x=>x[0]).join(''):String(n).trim().slice(0,3)).toUpperCase()};
+const vUrl=s=>((s.find(v=>v.recommended)||s[0]||{}).url)||'';
+const realUrl=u=>!!(u&&u.trim()&&u.trim()!='https://');
+const epTotal=x=>x.seasons.reduce((a,s)=>a+s.eps.length,0);
+const epLinked=x=>x.seasons.reduce((a,s)=>a+s.eps.filter(e=>realUrl(e.u)).length,0);
+const thumbBox=(u,c)=>`<span class="${c||'th56'}">${u?`<img src="${esc(u)}" alt="" onerror="this.remove()">`:''}</span>`;
+const cbadge=(c,big)=>`<span class="cb${big?' cbl':''}" style="background:linear-gradient(140deg,${hex(c.c1)},${hex(c.c2)})">${esc(c.ini)||'?'}</span>`;
+const dlist=(id,a)=>`<datalist id="${id}">${[...new Set(a)].filter(Boolean).map(v=>`<option value="${esc(v)}">`).join('')}</datalist>`;
+const addSrv="draft.sv.push({n:'Server '+(draft.sv.length+1),u:'https://',au:'',q:'HD',st:'g',r:!draft.sv.length,px:false,dl:null,hd:[]});rSv()";
+
+/* JSON out (used by the preview and by the push) */
+function mvOut(sj){
+  const base=x=>({id:x.id,title:x.t,genre:x.g,year:Number(x.y)||x.y||null,vj:x.vj||null,translated:!!x.tr,thumb:x.th||''});
+  return{
+    movies:MV.filter(x=>x.k=='movie').map(x=>{const s=sj(x.sv);return{...base(x),duration:x.d||'',videoUrl:vUrl(s),servers:s}}),
+    series:MV.filter(x=>x.k=='series').map(x=>({...base(x),seasons:x.seasons.map(se=>({number:se.n,episodes:se.eps.map(e=>({number:e.n,title:e.t,duration:e.d||'',thumb:e.th||'',videoUrl:realUrl(e.u)?e.u.trim():'',...(e.au&&e.au.trim()?{audioUrl:e.au.trim()}:{})}))}))}))
+  };
+}
+function chOut(sj){
+  return CHN.map(c=>{const s=sj(c.sv);return{id:c.id,name:c.t,category:c.cat,country:c.country,initials:c.ini,color1:c.c1,color2:c.c2,program:c.pr||'',videoUrl:vUrl(s),servers:s}});
+}
+/* JSON in */
+const svOrLink=x=>(x.servers&&x.servers.length?x.servers:(x.videoUrl?[{name:'Main',url:x.videoUrl,quality:'HD',status:'stable',recommended:true}]:[])).map(svFromJson);
+const mvBase=(x,k)=>({id:x.id,k,t:x.title||'',g:x.genre||'',y:x.year??'',vj:x.vj||'',tr:x.translated!==false,th:x.thumb||''});
+const mvFromJson=x=>({...mvBase(x,'movie'),d:x.duration||'',sv:svOrLink(x)});
+const seFromJson=x=>({...mvBase(x,'series'),seasons:(x.seasons||[]).map((se,i)=>({n:se.number||i+1,eps:(se.episodes||[]).map((e,j)=>({n:e.number||j+1,t:e.title||'',d:e.duration||'',th:e.thumb||'',u:e.videoUrl||'',au:e.audioUrl||''}))}))});
+const chFromJson=x=>({id:x.id,t:x.name||'',cat:x.category||'General',country:x.country||'',ini:x.initials||'',c1:x.color1||'#7a3fff',c2:x.color2||'#3f1f8a',pr:x.program||'',sv:svOrLink(x)});
+
+/* lists */
+function rMovies(){
+  if(!loaded)return `<div class="empty"><span class="spin"></span>Loading movies from GitHub...</div>`;
+  const c=k=>MV.filter(x=>x.k==k).length;
+  const rows=MV.filter(x=>(mfilter=='all'||x.k==mfilter)&&[x.t,x.g,x.y,x.vj].join(' ').toLowerCase().includes(mq));
+  const src=x=>{if(x.k!='series')return vs(x.sv,'server');const n=epTotal(x),l=epLinked(x);return n?`<span class="dot ${l==n?'g':'y'}"></span><span>${l==n?n+' episode'+(n>1?'s':''):l+'/'+n+' linked'}</span>`:`<span style="color:var(--y)">No episodes</span>`};
+  return `<div class="chips">${[['all','All',MV.length],['movie','Movies',c('movie')],['series','Series',c('series')]].map(x=>`<button class="chip ${mfilter==x[0]?'on':''}" onclick="mfilter='${x[0]}';render()">${x[1]}<i>${x[2]}</i></button>`).join('')}
+  <input class="search" placeholder="Search titles, genres or VJs" value="${esc(mq)}" oninput="mq=this.value.toLowerCase();render();const i=$('.search');i.focus();i.setSelectionRange(99,99)"><button class="btn gh" onclick="newMv('series')">New series</button><button class="btn" onclick="newMv('movie')">New movie</button></div>
+  <div class="tbl"><div class="tr th mv"><span>Title</span><span>Details</span><span>Length</span><span>Sources</span><span></span></div>
+  ${rows.map(x=>`<div class="tr mv click"><div class="mi a-t">${thumbBox(x.th)}<div><b>${esc(x.t)||'Untitled'}</b><small>${esc(x.g)}${x.y?' · '+esc(x.y):''}</small></div></div><div class="lg a-m"><span class="pl2">${x.k=='series'?(x.tr?'SERIES':'RAW SERIES'):(x.tr?'MOVIE':'RAW')}</span> ${x.tr?(esc(x.vj)||'No VJ set'):'Not translated'}</div><div class="mono a-d">${x.k=='series'?`S${x.seasons.length} · ${epTotal(x)} EP`:(esc(x.d)||'-')}</div><div class="svs a-sv">${src(x)}</div><div class="acts a-ac"><button class="ib" aria-label="Edit" onclick="openMv('${x.id}')">&#9998;</button><button class="ib x" aria-label="Delete" onclick="askDel('m','${x.id}')">&#10005;</button></div></div>`).join('')||'<div class="empty">No movies or series match. Add the first one.</div>'}</div>`;
+}
+function rChannels(){
+  if(!loaded)return `<div class="empty"><span class="spin"></span>Loading channels from GitHub...</div>`;
+  const loc=CHN.filter(isLocalCh).length;
+  const rows=CHN.filter(x=>(cfilter=='all'||(cfilter=='local')==isLocalCh(x))&&[x.t,x.cat,x.country,x.pr].join(' ').toLowerCase().includes(cq));
+  return `<div class="chips">${[['all','All',CHN.length],['local','Local',loc],['abroad','Abroad',CHN.length-loc]].map(x=>`<button class="chip ${cfilter==x[0]?'on':''}" onclick="cfilter='${x[0]}';render()">${x[1]}<i>${x[2]}</i></button>`).join('')}
+  <input class="search" placeholder="Search channels, categories or countries" value="${esc(cq)}" oninput="cq=this.value.toLowerCase();render();const i=$('.search');i.focus();i.setSelectionRange(99,99)"><button class="btn" onclick="newCh()">New channel</button></div>
+  <div class="tbl"><div class="tr th cn"><span>Channel</span><span>Country</span><span>Programme</span><span>Streams</span><span></span></div>
+  ${rows.map(x=>`<div class="tr cn click"><div class="mi a-t">${cbadge(x)}<div><b>${esc(x.t)||'Untitled'}</b><small>${esc(x.cat)}</small></div></div><div class="lg a-m">${esc(x.country)||'-'}<small>${isLocalCh(x)?'Local':'Abroad'}</small></div><div class="lg a-d">${esc(x.pr)||'<span style="color:var(--mut)">No programme set</span>'}</div><div class="svs a-sv">${vs(x.sv,'stream')}</div><div class="acts a-ac"><button class="ib" aria-label="Edit" onclick="openCh('${x.id}')">&#9998;</button><button class="ib x" aria-label="Delete" onclick="askDel('c','${x.id}')">&#10005;</button></div></div>`).join('')||'<div class="empty">No channels match. Add the first one.</div>'}</div>`;
+}
+
+/* movie and series editor */
+function prevM(d){
+  const n=d.k=='series'?`S${d.seasons.length} · ${epTotal(d)} EP`:(d.d||'0:00');
+  return `<div class="pc"><div class="mpv"><div class="mth">${d.th?`<img src="${esc(d.th)}" alt="" onerror="this.remove()">`:''}<span class="tg">${d.k=='series'?(d.tr?'SERIES':'RAW'):(d.tr?'MOVIE':'RAW')}</span><span class="du">${esc(n)}</span></div><div class="mti"><b>${esc(d.t)||'Title'}</b><small>${esc((d.g||'GENRE').toUpperCase())} · ${esc(d.y||'YEAR')}${d.vj?' · '+esc(d.vj):''}</small></div></div></div>`;
+}
+const pvM=()=>{$('#pv').innerHTML=prevM(draft)};
+function newMv(k){
+  mode=k=='series'?'s':'m';isNew=true;
+  draft={id:Date.now(),k,t:'',g:'',y:new Date().getFullYear(),vj:'',tr:true,th:''};
+  if(k=='series')draft.seasons=[{n:1,eps:[{n:1,t:'Episode 1',d:'',th:'',u:'https://',au:''}]}];else{draft.d='';draft.sv=[]}
+  showMv();
+}
+function openMv(id){const x=MV.find(e=>e.id==id);if(!x)return;mode=x.k=='series'?'s':'m';isNew=false;draft=JSON.parse(JSON.stringify(x));showMv()}
+function showMv(){
+  const d=draft,se=d.k=='series';
+  $('#dr').innerHTML=`<div class="dh"><h2>${isNew?'New ':'Edit '}${se?'series':'movie'}</h2><button class="ib" aria-label="Close" onclick="closeEd()">&#10005;</button></div>
+  <div class="db"><div><label class="lab">How it looks in the app</label><div id="pv">${prevM(d)}</div></div>
+  <div class="f2">
+    <div style="grid-column:1/-1"><label class="lab">Title</label><input value="${esc(d.t)}" placeholder="e.g. The Last Stand of the Fallen King" oninput="draft.t=this.value;pvM()"></div>
+    <div><label class="lab">Genre</label><input list="dl-genre" style="text-transform:uppercase" value="${esc(d.g)}" placeholder="ACTION" oninput="draft.g=this.value;pvM()">${dlist('dl-genre',[...GENRES,...MV.map(x=>x.g)])}</div>
+    <div><label class="lab">Year</label><input type="number" min="1900" max="2100" value="${esc(d.y)}" placeholder="2025" oninput="draft.y=this.value;pvM()"></div>
+    <div><label class="lab">Translation</label><select onchange="draft.tr=this.value=='1';if(!draft.tr)draft.vj='';showMv()"><option value="1" ${d.tr?'selected':''}>Translated</option><option value="0" ${d.tr?'':'selected'}>Non-translated (raw)</option></select></div>
+    ${d.tr?`<div><label class="lab">VJ</label><input list="dl-vj" value="${esc(d.vj)}" placeholder="VJ Emmy" oninput="draft.vj=this.value;pvM()">${dlist('dl-vj',MV.map(x=>x.vj))}</div>`:'<div></div>'}
+    ${se?'':`<div><label class="lab">Length</label><input class="mono" value="${esc(d.d)}" placeholder="1:42:15" oninput="draft.d=this.value;pvM()"></div><div></div>`}
+    <div style="grid-column:1/-1"><label class="lab">Thumbnail link (16:10 image)</label><input class="mono" value="${esc(d.th)}" placeholder="https://.../poster.jpg" oninput="draft.th=this.value;pvM()"></div>
+  </div>
+  ${se?`<div><div class="sh" style="margin-bottom:6px"><b style="flex:1">Seasons and episodes</b><button class="btn gh" style="padding:7px 12px" onclick="addSe()">Add season</button></div><div id="se" style="display:grid;gap:10px"></div></div>`
+  :`<div><div class="sh" style="margin-bottom:6px"><b style="flex:1">Video sources</b><button class="btn gh" style="padding:7px 12px" onclick="${addSrv}">Add source</button></div><p class="sub" style="margin:0 0 10px">Add the same movie from different sources so the app can fall back if one fails.</p><div id="sl" style="display:grid;gap:10px"></div></div>`}
+  </div>
+  <div class="df"><button class="btn" onclick="saveMv()">${se?'Save series':'Save movie'}</button><button class="btn gh" onclick="closeEd()">Cancel</button>${isNew?'':`<button class="btn rd" style="margin-left:auto" onclick="askDel('m','${d.id}')">Delete</button>`}</div>`;
+  se?rSe():rSv();$('#dr').classList.add('on');$('#ov').classList.add('on');
+}
+function rSe(){
+  $('#se').innerHTML=draft.seasons.map((s,i)=>`<div class="sv"><div class="sh"><b style="flex:1">Season ${s.n}</b><button class="btn gh" style="padding:6px 10px" onclick="addEp(${i})">Add episode</button><button class="ib x" aria-label="Remove season" onclick="delSe(${i})">&#10005;</button></div>
+  ${s.eps.map((e,j)=>`<div class="ep"><div class="epr"><span class="mono epn">${pad(e.n)}</span><input value="${esc(e.t)}" placeholder="Episode title" oninput="draft.seasons[${i}].eps[${j}].t=this.value"><input class="mono" value="${esc(e.d)}" placeholder="42:15" aria-label="Length" oninput="draft.seasons[${i}].eps[${j}].d=this.value"><button class="ib x" aria-label="Remove episode" onclick="delEp(${i},${j})">&#10005;</button></div>
+  <input class="mono" value="${esc(e.u)}" placeholder="Video link (.m3u8 or .mp4)" oninput="draft.seasons[${i}].eps[${j}].u=this.value;pvM()">
+  <input class="mono" value="${esc(e.au||'')}" placeholder="Audio track link (optional)" oninput="draft.seasons[${i}].eps[${j}].au=this.value">
+  <input class="mono" value="${esc(e.th||'')}" placeholder="Episode thumbnail link (optional)" oninput="draft.seasons[${i}].eps[${j}].th=this.value"></div>`).join('')||'<p class="sub" style="margin:8px 0 0">No episodes yet.</p>'}</div>`).join('')||'<div class="empty" style="border:1px dashed var(--line2);border-radius:14px;padding:20px">No seasons yet. Add one.</div>';
+}
+function addSe(){draft.seasons.push({n:draft.seasons.length+1,eps:[{n:1,t:'Episode 1',d:'',th:'',u:'https://',au:''}]});rSe();pvM()}
+function delSe(i){draft.seasons.splice(i,1);draft.seasons.forEach((s,k)=>s.n=k+1);rSe();pvM()}
+function addEp(i){const s=draft.seasons[i],n=s.eps.length+1;s.eps.push({n,t:'Episode '+n,d:'',th:'',u:'https://',au:''});rSe();pvM()}
+function delEp(i,j){const s=draft.seasons[i];s.eps.splice(j,1);s.eps.forEach((e,k)=>e.n=k+1);rSe();pvM()}
+function saveMv(){
+  const d=draft,se=d.k=='series';
+  d.t=d.t.trim();d.g=String(d.g||'').trim().toUpperCase();d.th=(d.th||'').trim();d.vj=d.tr?String(d.vj||'').trim():'';
+  if(!d.t)return toast('Enter a title',1);
+  if(se){
+    if(!epTotal(d))return toast('Add at least one episode',1);
+    d.seasons.forEach(s=>s.eps.forEach(e=>{e.t=e.t.trim()||('Episode '+e.n);e.u=realUrl(e.u)?e.u.trim():'';e.d=e.d.trim();e.th=(e.th||'').trim();e.au=(e.au||'').trim()}));
+  }else d.d=(d.d||'').trim();
+  if(isNew)MV.push(d);else MV[MV.findIndex(e=>e.id==d.id)]=d;
+  mark((isNew?'Added ':'Updated ')+(se?'series ':'movie ')+d.t);closeEd();render();toast(se?'Series saved':'Movie saved');
+}
+
+/* channel editor */
+function prevC(d){
+  return `<div class="pc"><div class="mpv">${cbadge(d,1)}<div class="mti"><b>${esc(d.t)||'Channel name'}</b><small>${esc(d.pr)||'Current programme'}</small><span class="live">LIVE</span></div></div></div>`;
+}
+const pvC=()=>{$('#pv').innerHTML=prevC(draft)};
+function newCh(){mode='c';isNew=true;draft={id:Date.now(),t:'',cat:'General',country:'Uganda',ini:'',iniT:false,c1:'#7a3fff',c2:'#3f1f8a',pr:'',sv:[]};showCh()}
+function openCh(id){const x=CHN.find(e=>e.id==id);if(!x)return;mode='c';isNew=false;draft=JSON.parse(JSON.stringify(x));draft.iniT=!!x.ini;showCh()}
+function showCh(){
+  const d=draft;
+  $('#dr').innerHTML=`<div class="dh"><h2>${isNew?'New channel':'Edit channel'}</h2><button class="ib" aria-label="Close" onclick="closeEd()">&#10005;</button></div>
+  <div class="db"><div><label class="lab">How it looks in the app</label><div id="pv">${prevC(d)}</div></div>
+  <div class="f2">
+    <div style="grid-column:1/-1"><label class="lab">Channel name</label><input value="${esc(d.t)}" placeholder="e.g. NBS TV" oninput="draft.t=this.value;if(!draft.iniT){draft.ini=iniOf(draft.t);$('#c_ini').value=draft.ini}pvC()"></div>
+    <div><label class="lab">Category</label><input list="dl-cat" value="${esc(d.cat)}" placeholder="General" oninput="draft.cat=this.value">${dlist('dl-cat',[...CATS,...CHN.map(x=>x.cat)])}</div>
+    <div><label class="lab">Country</label><input list="dl-ctry" value="${esc(d.country)}" placeholder="Uganda" oninput="draft.country=this.value">${dlist('dl-ctry',[...CTRY,...CHN.map(x=>x.country)])}</div>
+    <div><label class="lab">Initials (shown on the logo)</label><input id="c_ini" maxlength="4" style="text-transform:uppercase" value="${esc(d.ini)}" placeholder="NBS" oninput="draft.ini=this.value;draft.iniT=true;pvC()"></div>
+    <div><label class="lab">Current programme</label><input value="${esc(d.pr)}" placeholder="News at 9" oninput="draft.pr=this.value;pvC()"></div>
+    <div><label class="lab">Logo colour 1</label><input type="color" value="${hex(d.c1)}" oninput="draft.c1=this.value;pvC()"></div>
+    <div><label class="lab">Logo colour 2</label><input type="color" value="${hex(d.c2)}" oninput="draft.c2=this.value;pvC()"></div>
+  </div>
+  <div><div class="sh" style="margin-bottom:6px"><b style="flex:1">Live streams</b><button class="btn gh" style="padding:7px 12px" onclick="${addSrv}">Add stream</button></div><p class="sub" style="margin:0 0 10px">Add several links so the app can fall back to another one if a stream fails.</p><div id="sl" style="display:grid;gap:10px"></div></div></div>
+  <div class="df"><button class="btn" onclick="saveCh()">Save channel</button><button class="btn gh" onclick="closeEd()">Cancel</button>${isNew?'':`<button class="btn rd" style="margin-left:auto" onclick="askDel('c','${d.id}')">Delete</button>`}</div>`;
+  rSv();$('#dr').classList.add('on');$('#ov').classList.add('on');
+}
+function saveCh(){
+  const d=draft;d.t=d.t.trim();
+  if(!d.t)return toast('Enter a channel name',1);
+  d.cat=(d.cat||'').trim()||'General';d.country=(d.country||'').trim();d.pr=(d.pr||'').trim();
+  d.ini=(d.ini||iniOf(d.t)).trim().toUpperCase().slice(0,4);d.c1=hex(d.c1);d.c2=hex(d.c2);delete d.iniT;
+  if(isNew)CHN.push(d);else CHN[CHN.findIndex(e=>e.id==d.id)]=d;
+  mark((isNew?'Added':'Updated')+' channel '+d.t);closeEd();render();toast('Channel saved');
+}
+
+/* delete confirmation for movies, series and channels */
+function askDelX(k,id){
+  const it=(k=='m'?MV:CHN).find(x=>x.id==id);if(!it)return;
+  const what=k=='c'?'channel':(it.k=='series'?'series':'movie'),n=it.k=='series'?epTotal(it):it.sv.length,unit=it.k=='series'?'episode':(k=='c'?'stream':'source');
+  $('#cft').textContent=`Delete this ${what}?`;
+  $('#cfb').innerHTML=`<b>${esc(it.t)}</b>${n?` and its ${n} ${unit}${n>1?'s':''}`:''} will be removed from the app once you publish. To bring it back later you would have to revert the commit on GitHub.`;
+  $('#cfy').textContent='Delete '+what;
+  pend=()=>{if(k=='m')MV=MV.filter(x=>x.id!=id);else CHN=CHN.filter(x=>x.id!=id);mark('Removed '+what+' '+it.t);closeEd();render();toast(what[0].toUpperCase()+what.slice(1)+' deleted')};
+  $('#cf').classList.add('on');$('#cfn').focus();
+}
 
 // ── BOOT ──────────────────────────────────────────────────────────────
 updateRepoBadge();
