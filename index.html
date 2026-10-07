@@ -241,6 +241,28 @@ input[type=color]{padding:3px;height:40px;cursor:pointer}
 .epn{color:var(--o);text-align:center}
 @media(max-width:760px){.mv,.cn{grid-template-areas:"t ac" "m m" "d sv"}}
 .toast{pointer-events:none}
+
+/* editor validation, image links, pickers */
+.gh3{margin:6px 0 -4px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.err{display:none;margin-top:6px;color:var(--r);font-size:12px;line-height:1.4}
+.err.on{display:block}
+.bad{border-color:var(--r)!important;box-shadow:0 0 0 3px rgba(255,77,77,.14)}
+.imr{display:flex;gap:10px;align-items:center}
+.imr input{flex:1;min-width:0}
+.imp{width:72px;aspect-ratio:16/10;flex:none;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:linear-gradient(135deg,#1c1c1c,#0a0a0a)}
+.imp.sq{width:56px;aspect-ratio:1/1}
+.imp img{width:100%;height:100%;object-fit:cover;display:none}
+.imf.ok .imp img{display:block}
+.ims{display:block;margin-top:6px;color:var(--mut);font-size:12px}
+.ims:empty{display:none}
+.imf.ok .ims{color:var(--g)}
+.imf.no .ims{color:var(--y)}
+.sws{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.sw{width:34px;height:34px;padding:0;border-radius:10px;border:2px solid transparent;cursor:pointer}
+.sw:hover{border-color:var(--tx)}
+.tpr .ck.rmv{color:var(--r);padding:2px 8px;border-radius:8px}
+.cb{position:relative;overflow:hidden}
+.cb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 </style>
 </head>
 <body>
@@ -369,7 +391,7 @@ function rPub(){
   const sj=a=>a.map(x=>({name:x.n,url:x.u,quality:x.q,audio:x.au||undefined,status:{g:'stable',y:'average',r:'unstable'}[x.st],recommended:x.r,useProxy:!!x.px,delaySeconds:x.dl??null,headers:Object.fromEntries((x.hd||[]).filter(h=>h.k.trim()).map(h=>[h.k.trim(),SECRET(h.k)?'••••••':h.v]))}));
   const sec=[...E,...H,...MV,...CHN].some(x=>(x.sv||[]).some(v=>(v.hd||[]).some(h=>h.k.trim()))),block=sec&&pubRepo;
   const warn=sec?`<div class="warn ${pubRepo?'bad':''}"><b>${pubRepo?'Publishing is blocked':'Some servers include headers or tokens'}</b><span>${pubRepo?'The repository is public, so anyone could read your stream headers. Switch it to private to publish.':'Keep the repository private so only your app and this console can read them.'}</span></div>`:'';
-  const data=JSON.stringify({settings:{defaultDelaySeconds:DEF},sports:SPORTS,leagues:LG.map(l=>({name:l.n,sport:l.s})),teams:Object.entries(T).map(([code,[name,badge]])=>({code,name,badge})),events:E.map(e=>({id:e.id,league:e.league,sport:e.sport,home:e.h,away:e.a,status:e.s,...(e.s=='live'?{minute:e.w}:e.s=='upcoming'?{kickoff:e.k}:{}),servers:sj(e.sv)})),highlights:H.map(x=>({id:x.id,title:x.t,home:x.h,away:x.a,length:x.d,servers:sj(x.sv)})),...mvOut(sj),channels:chOut(sj)},null,2);
+  const data=JSON.stringify({settings:{defaultDelaySeconds:DEF},sports:SPORTS,leagues:LG.map(l=>({name:l.n,sport:l.s})),teams:Object.entries(T).map(([code,[name,badge]])=>({code,name,badge})),events:E.map(e=>({id:e.id,league:e.league,sport:e.sport,home:e.h,away:e.a,status:e.s,...(e.s=='live'?{minute:e.w}:e.s=='upcoming'?{kickoff:e.k}:{}),servers:sj(e.sv)})),highlights:H.map(x=>({id:x.id,title:x.t,home:x.h,away:x.a,length:x.d,servers:sj(x.sv)})),...mvOut(sj),channels:chOut(sj),vjs:allVjs()},null,2);
   
   const isReady = ghUser && ghRepo && ghToken;
 
@@ -414,7 +436,7 @@ async function loadFromGitHub(manual){
       }
     });
     if (res.status === 404) {
-      T = {}; E = []; H = []; MV = []; CHN = []; DEF = 20;
+      T = {}; E = []; H = []; MV = []; CHN = []; VJS = []; DEF = 20;
       loaded = true;
       updateRepoBadge();
       render();
@@ -434,6 +456,7 @@ async function loadFromGitHub(manual){
       ...(Array.isArray(data.series) ? data.series.map(seFromJson) : [])
     ];
     CHN = Array.isArray(data.channels) ? data.channels.map(chFromJson) : [];
+    VJS = Array.isArray(data.vjs) ? data.vjs.filter(v => typeof v === 'string' && v.trim()) : [];
 
     if (data.settings && typeof data.settings.defaultDelaySeconds === 'number') DEF = data.settings.defaultDelaySeconds;
     if (Array.isArray(data.leagues) && data.leagues.length) LG = data.leagues.map(l => ({n:l.name,s:l.sport}));
@@ -511,7 +534,8 @@ async function doPush(){
     })),
     highlights: H.map(x => ({ id: x.id, title: x.t, home: x.h, away: x.a, length: x.d, servers: sj(x.sv) })),
     ...mvOut(sj),
-    channels: chOut(sj)
+    channels: chOut(sj),
+    vjs: allVjs()
   }, null, 2);
 
   const apiUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/content.json`;
@@ -646,6 +670,7 @@ function closeEd(){$('#dr').classList.remove('on');$('#ov').classList.remove('on
 /* in-app sport and league picker */
 const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let opK='sport',opQ='',opA=0,opL=[];
+let GP=null;   // generic picker state (VJ, genre, category, country); null when the sport/league picker is in use
 function opBuild(){
   const q=opQ.trim().toLowerCase(),by=(a,b)=>a.n.localeCompare(b.n);let items,total,exact;
   if(opK=='sport'){
@@ -659,9 +684,10 @@ function opBuild(){
   if(q&&!exact)items.unshift({add:true,n:opQ.trim()});
   return{items,total};
 }
-function openOp(k){opK=k;opQ='';opA=0;$('#ops').value='';$('#opt').textContent=k=='sport'?'Choose a sport':'Choose a league';$('#ops').placeholder=k=='sport'?'Search or type a new sport':'Search or type a new league';$('#op').classList.add('on');renderOp();$('#ops').focus()}
-function closeOp(){$('#op').classList.remove('on')}
+function openOp(k){GP=null;opK=k;opQ='';opA=0;$('#ops').value='';$('#opt').textContent=k=='sport'?'Choose a sport':'Choose a league';$('#ops').placeholder=k=='sport'?'Search or type a new sport':'Search or type a new league';$('#op').classList.add('on');renderOp();$('#ops').focus()}
+function closeOp(){GP=null;$('#op').classList.remove('on')}
 function renderOp(scroll){
+  if(GP)return gpRender(scroll);
   const {items,total}=opBuild(),cur=draft[opK];opL=items;
   opA=Math.max(0,Math.min(opA,items.length-1));
   $('#opc').textContent=`${items.filter(x=>!x.add).length} of ${total} ${opK=='sport'?'sports':'leagues'}`;
@@ -674,11 +700,13 @@ function renderOp(scroll){
   if(scroll){const a=$('#opl .act');a&&a.scrollIntoView({block:'nearest'})}
 }
 function opKey(e){
+  if(GP)return gpKey(e);
   if(e.key=='ArrowDown'){e.preventDefault();opA=Math.min(opA+1,opL.length-1);renderOp(1)}
   else if(e.key=='ArrowUp'){e.preventDefault();opA=Math.max(opA-1,0);renderOp(1)}
   else if(e.key=='Enter'){e.preventDefault();if(opL.length)opPick(opA)}
 }
 function opPick(i){
+  if(GP)return gpPick(i);
   const x=opL[i];if(!x)return;
   if(x.add){
     if(opK=='sport')SPORTS.push(x.n);else LG.push({n:x.n,s:draft.sport||''});
@@ -701,6 +729,12 @@ function tmSpec(mode,val){
   if(mode=='minute'){
     const [m,a]=String(val||'0').split('+').map(Number),out=i=>i[1]?`${i[0]}+${i[1]}`:`${i[0]}`;
     return{title:'Match minute',hint:'Scroll, tap or use the arrow keys',cols:[{lab:'Minute',items:rng(131)},{lab:'Added time',items:['None',...rng(15,i=>'+'+(i+1))]}],idx:[Math.min(m||0,130),Math.min(a||0,15)],chips:[1,15,30,45,60,75,90].map(x=>({t:x+"'",v:[x,0]})),out,sum:i=>`${out(i)}' on the clock`};
+  }
+  if(mode=='runtime'){
+    const p=String(val||'').split(':').map(Number).filter(n=>!isNaN(n));let h=0,m=0,x=0;
+    if(p.length==3)[h,m,x]=p;else if(p.length==2){[m,x]=p;h=Math.floor(m/60);m=m%60}else if(p.length==1)[m]=p;
+    const out=i=>i[0]>0?`${i[0]}:${pad(i[1])}:${pad(i[2])}`:`${i[1]}:${pad(i[2])}`;
+    return{title:'Running time',hint:'Hours, minutes and seconds. Scroll, tap or use the arrow keys',cols:[{lab:'Hours',items:rng(6)},{lab:'Minutes',items:rng(60,pad)},{lab:'Seconds',items:rng(60,pad)}],idx:[Math.min(h||0,5),Math.min(m||0,59),Math.min(x||0,59)],chips:[{t:'25 min',v:[0,25,0]},{t:'45 min',v:[0,45,0]},{t:'1 h',v:[1,0,0]},{t:'1 h 30',v:[1,30,0]},{t:'2 h',v:[2,0,0]}],out,sum:i=>`${out(i)}<small>${i[0]} h ${i[1]} min ${i[2]} sec</small>`};
   }
   if(mode=='duration'){
     const [m,s]=String(val||'0:0').split(':').map(Number),out=i=>pad(i[0])+':'+pad(i[1]);
@@ -782,6 +816,8 @@ document.addEventListener('keydown',e=>{if(e.key=='Escape'){if($('#cf').classLis
 
 /* ═══════════ Movies, series and channels ═══════════ */
 let mq='',cq='',mfilter='all',cfilter='all';
+let VJS=[];   // saved VJ names (kept even when no title uses them yet)
+const allVjs=()=>[...new Set([...VJS,...MV.map(x=>x.vj).filter(Boolean)])].sort();
 const GENRES=['ACTION','ADVENTURE','ANIMATION','COMEDY','CRIME','DOCUMENTARY','DRAMA','FANTASY','HORROR','MYSTERY','ROMANCE','SCI-FI','THRILLER','WESTERN'];
 const CATS=['General','News','Sports','Entertainment','Kids','Music'];
 const CTRY=['Uganda','Kenya','Tanzania','Rwanda','South Africa','Nigeria','UK','USA','France','Germany','Qatar','India','China','Japan','Korea','Russia'];
@@ -793,8 +829,7 @@ const realUrl=u=>!!(u&&u.trim()&&u.trim()!='https://');
 const epTotal=x=>x.seasons.reduce((a,s)=>a+s.eps.length,0);
 const epLinked=x=>x.seasons.reduce((a,s)=>a+s.eps.filter(e=>realUrl(e.u)).length,0);
 const thumbBox=(u,c)=>`<span class="${c||'th56'}">${u?`<img src="${esc(u)}" alt="" onerror="this.remove()">`:''}</span>`;
-const cbadge=(c,big)=>`<span class="cb${big?' cbl':''}" style="background:linear-gradient(140deg,${hex(c.c1)},${hex(c.c2)})">${esc(c.ini)||'?'}</span>`;
-const dlist=(id,a)=>`<datalist id="${id}">${[...new Set(a)].filter(Boolean).map(v=>`<option value="${esc(v)}">`).join('')}</datalist>`;
+const cbadge=(c,big)=>`<span class="cb${big?' cbl':''}" style="background:linear-gradient(140deg,${hex(c.c1)},${hex(c.c2)})">${esc(c.ini)||'?'}${isUrl(c.lg)?`<img src="${esc(c.lg)}" alt="" onerror="this.remove()">`:''}</span>`;
 const addSrv="draft.sv.push({n:'Server '+(draft.sv.length+1),u:'https://',au:'',q:'HD',st:'g',r:!draft.sv.length,px:false,dl:null,hd:[]});rSv()";
 
 /* JSON out (used by the preview and by the push) */
@@ -806,14 +841,14 @@ function mvOut(sj){
   };
 }
 function chOut(sj){
-  return CHN.map(c=>{const s=sj(c.sv);return{id:c.id,name:c.t,category:c.cat,country:c.country,initials:c.ini,color1:c.c1,color2:c.c2,program:c.pr||'',videoUrl:vUrl(s),servers:s}});
+  return CHN.map(c=>{const s=sj(c.sv);return{id:c.id,name:c.t,category:c.cat,country:c.country,initials:c.ini,logo:c.lg||'',color1:c.c1,color2:c.c2,program:c.pr||'',videoUrl:vUrl(s),servers:s}});
 }
 /* JSON in */
 const svOrLink=x=>(x.servers&&x.servers.length?x.servers:(x.videoUrl?[{name:'Main',url:x.videoUrl,quality:'HD',status:'stable',recommended:true}]:[])).map(svFromJson);
 const mvBase=(x,k)=>({id:x.id,k,t:x.title||'',g:x.genre||'',y:x.year??'',vj:x.vj||'',tr:x.translated!==false,th:x.thumb||''});
 const mvFromJson=x=>({...mvBase(x,'movie'),d:x.duration||'',sv:svOrLink(x)});
 const seFromJson=x=>({...mvBase(x,'series'),seasons:(x.seasons||[]).map((se,i)=>({n:se.number||i+1,eps:(se.episodes||[]).map((e,j)=>({n:e.number||j+1,t:e.title||'',d:e.duration||'',th:e.thumb||'',u:e.videoUrl||'',au:e.audioUrl||''}))}))});
-const chFromJson=x=>({id:x.id,t:x.name||'',cat:x.category||'General',country:x.country||'',ini:x.initials||'',c1:x.color1||'#7a3fff',c2:x.color2||'#3f1f8a',pr:x.program||'',sv:svOrLink(x)});
+const chFromJson=x=>({id:x.id,t:x.name||'',cat:x.category||'General',country:x.country||'',ini:x.initials||'',lg:x.logo||'',c1:x.color1||'#7a3fff',c2:x.color2||'#3f1f8a',pr:x.program||'',sv:svOrLink(x)});
 
 /* lists */
 function rMovies(){
@@ -836,10 +871,89 @@ function rChannels(){
   ${rows.map(x=>`<div class="tr cn click"><div class="mi a-t">${cbadge(x)}<div><b>${esc(x.t)||'Untitled'}</b><small>${esc(x.cat)}</small></div></div><div class="lg a-m">${esc(x.country)||'-'}<small>${isLocalCh(x)?'Local':'Abroad'}</small></div><div class="lg a-d">${esc(x.pr)||'<span style="color:var(--mut)">No programme set</span>'}</div><div class="svs a-sv">${vs(x.sv,'stream')}</div><div class="acts a-ac"><button class="ib" aria-label="Edit" onclick="openCh('${x.id}')">&#9998;</button><button class="ib x" aria-label="Delete" onclick="askDel('c','${x.id}')">&#10005;</button></div></div>`).join('')||'<div class="empty">No channels match. Add the first one.</div>'}</div>`;
 }
 
+/* ── validation, image-link fields and the generic picker ── */
+const isUrl=u=>{try{const x=new URL(String(u||'').trim());return /^https?:$/.test(x.protocol)&&(x.hostname.includes('.')||x.hostname=='localhost')}catch(e){return false}};
+const durOk=d=>!!d&&d!='0:00';
+let EV=[];
+const fe=(id,msg)=>EV.push({id,msg});
+function clrE(id){const f=$('#f_'+id),e=$('#e_'+id);if(f)f.classList.remove('bad');if(e){e.textContent='';e.classList.remove('on')}}
+function showErrs(){
+  document.querySelectorAll('#dr .err').forEach(e=>{e.textContent='';e.classList.remove('on')});
+  document.querySelectorAll('#dr .bad').forEach(e=>e.classList.remove('bad'));
+  const by={};EV.forEach(x=>{(by[x.id]=by[x.id]||[]).push(x.msg)});
+  Object.entries(by).forEach(([id,m])=>{const e=$('#e_'+id),f=$('#f_'+id);if(e){e.textContent=m.join(' ');e.classList.add('on')}if(f)f.classList.add('bad')});
+  const first=EV.length&&($('#f_'+EV[0].id)||$('#e_'+EV[0].id));if(first)first.scrollIntoView({block:'center',behavior:'smooth'});
+}
+const pvX=()=>{if($('#pv'))(mode=='c'?pvC:pvM)()};
+const imf=(id,label,val,setter,sq,req)=>`<div class="imf"><label class="lab">${label}${req?'':' (optional)'}</label><div class="imr"><input id="f_${id}" class="mono" value="${esc(val||'')}" placeholder="https://.../image.jpg" oninput="${setter}=this.value;clrE('${id}');imgChk(this);pvX()"><span class="imp${sq?' sq':''}"><img alt="" onload="imgOk(this)" onerror="imgBad(this)"></span></div><small class="ims"></small><small class="err" id="e_${id}"></small></div>`;
+function imgChk(inp){
+  const f=inp.closest('.imf'),im=f.querySelector('img'),st=f.querySelector('.ims'),v=inp.value.trim();
+  f.classList.remove('ok','no');im.removeAttribute('src');
+  if(!v){st.textContent='';return}
+  if(!isUrl(v)){st.textContent='Not a valid link yet. It should start with https://';return}
+  st.textContent='Checking the image...';im.src=v;
+}
+function imgOk(im){const f=im.closest('.imf');f.classList.remove('no');f.classList.add('ok');f.querySelector('.ims').textContent='Image found'}
+function imgBad(im){if(!im.getAttribute('src'))return;const f=im.closest('.imf');f.classList.remove('ok');f.classList.add('no');f.querySelector('.ims').textContent="This link doesn't load as an image from here. Open it in a browser to check it."}
+const imgInit=()=>document.querySelectorAll('#dr .imf input').forEach(i=>imgChk(i));
+
+/* generic searchable picker (shares the sport/league dialog) */
+const PKS={
+  genre:{noun:'genre',title:'Choose a genre',ph:'Search or type a new genre',get:()=>draft.g,set:n=>{draft.g=n},btn:'f_g',err:'g',fmt:n=>n.toUpperCase()},
+  vj:{noun:'VJ',title:'Choose a VJ',ph:'Search or type a new VJ name',get:()=>draft.vj,set:n=>{draft.vj=n},btn:'f_vj',err:'vj',fmt:n=>'VJ '+n.replace(/^vj\s*/i,'').trim().replace(/\b[a-z]/g,m=>m.toUpperCase())},
+  cat:{noun:'category',title:'Choose a category',ph:'Search or type a new category',get:()=>draft.cat,set:n=>{draft.cat=n},btn:'f_cat',err:'cat',fmt:n=>n},
+  country:{noun:'country',title:'Choose a country',ph:'Search or type a country',get:()=>draft.country,set:n=>{draft.country=n},btn:'f_country',err:'country',fmt:n=>n},
+};
+function pk(kind){
+  const c=PKS[kind];
+  GP={kind,...c,cur:c.get(),onPick:n=>{c.set(n);$('#'+c.btn).innerHTML=`<span>${esc(n)}</span>`;clrE(c.err);pvX()}};
+  opQ='';opA=0;$('#ops').value='';$('#opt').textContent=c.title;$('#ops').placeholder=c.ph;$('#op').classList.add('on');gpRender();$('#ops').focus();
+}
+function gpItems(kind){
+  const m=new Map(),add=(n,c)=>{if(n)m.set(n,(m.get(n)||0)+(c||0))};
+  if(kind=='vj'){VJS.forEach(v=>add(v));MV.forEach(x=>add(x.vj,1))}
+  else if(kind=='genre'){GENRES.forEach(v=>add(v));MV.forEach(x=>add(x.g,1))}
+  else if(kind=='cat'){CATS.forEach(v=>add(v));CHN.forEach(x=>add(x.cat,1))}
+  else{CTRY.forEach(v=>add(v));CHN.forEach(x=>add(x.country,1))}
+  const unit=kind=='cat'||kind=='country'?'channel':'title';
+  return [...m].map(([n,c])=>({n,t:c+' '+unit+(c==1?'':'s'),rm:kind=='vj'&&!c&&VJS.includes(n)}))
+    .sort((a,b)=>kind=='country'&&(a.n=='Uganda')!=(b.n=='Uganda')?(a.n=='Uganda'?-1:1):a.n.localeCompare(b.n));
+}
+let gpL=[];
+function gpRender(scroll){
+  const q=opQ.trim().toLowerCase(),all=gpItems(GP.kind);
+  if(GP.cur&&!all.some(x=>x.n==GP.cur))all.push({n:GP.cur,t:'current'});
+  const items=all.filter(x=>x.n.toLowerCase().includes(q)),nm=GP.fmt(opQ.trim());
+  if(q&&nm.trim().length>(GP.kind=='vj'?2:0)&&!all.some(x=>x.n.toLowerCase()==nm.toLowerCase()))items.unshift({add:true,n:nm});
+  gpL=items;opA=Math.max(0,Math.min(opA,items.length-1));
+  $('#opc').textContent=`${items.filter(x=>!x.add).length} of ${all.length} ${GP.noun}s`;
+  $('#opl').innerHTML=items.map((x,i)=>x.add
+    ?`<button type="button" class="tpr add ${i==opA?'act':''}" onclick="opPick(${i})"><span class="n">Add “${esc(x.n)}” as a new ${GP.noun}</span><span class="ck">+</span></button>`
+    :`<button type="button" class="tpr ${x.n==GP.cur?'sel':''} ${i==opA?'act':''}" onclick="opPick(${i})"><span class="n">${esc(x.n)}</span><span class="mono cd">${esc(x.t)}</span>${x.rm?`<span class="ck rmv" role="button" aria-label="Remove ${esc(x.n)}" title="Remove this unused ${GP.noun}" onclick="event.stopPropagation();gpRm(${i})">&#10005;</span>`:(x.n==GP.cur?'<span class="ck">&#10003;</span>':'')}</button>`
+  ).join('')||`<div class="empty">Nothing here yet. Type a name to add it.</div>`;
+  if(scroll){const a=$('#opl .act');a&&a.scrollIntoView({block:'nearest'})}
+}
+function gpKey(e){
+  if(e.key=='ArrowDown'){e.preventDefault();opA=Math.min(opA+1,gpL.length-1);gpRender(1)}
+  else if(e.key=='ArrowUp'){e.preventDefault();opA=Math.max(opA-1,0);gpRender(1)}
+  else if(e.key=='Enter'){e.preventDefault();if(gpL.length)gpPick(opA)}
+}
+function gpPick(i){
+  const x=gpL[i];if(!x)return;const cb=GP.onPick,noun=GP.noun;
+  if(x.add){if(GP.kind=='vj'){VJS.push(x.n);mark('Added VJ '+x.n)}toast(noun[0].toUpperCase()+noun.slice(1)+' added')}
+  closeOp();cb(x.n);
+}
+function gpRm(i){const x=gpL[i];if(!x)return;VJS=VJS.filter(v=>v!=x.n);mark('Removed VJ '+x.n);toast('VJ removed');gpRender()}
+const srcBlock=(title,hint,btn)=>`<div><div class="sh" style="margin-bottom:6px"><b style="flex:1">${title}</b><button type="button" class="btn gh" style="padding:7px 12px" onclick="${addSrv};clrE('sv')">${btn}</button></div><p class="sub" style="margin:0 0 8px">${hint}</p><small class="err" id="e_sv"></small><div id="sl" style="display:grid;gap:10px;margin-top:8px"></div></div>`;
+function svChk(){
+  if(!draft.sv.length)return fe('sv','Add at least one source with a video link.');
+  draft.sv.forEach((x,i)=>{if(!isUrl(x.u))fe('sv',`Source ${i+1} needs a valid link starting with https://.`)});
+}
+
 /* movie and series editor */
 function prevM(d){
   const n=d.k=='series'?`S${d.seasons.length} · ${epTotal(d)} EP`:(d.d||'0:00');
-  return `<div class="pc"><div class="mpv"><div class="mth">${d.th?`<img src="${esc(d.th)}" alt="" onerror="this.remove()">`:''}<span class="tg">${d.k=='series'?(d.tr?'SERIES':'RAW'):(d.tr?'MOVIE':'RAW')}</span><span class="du">${esc(n)}</span></div><div class="mti"><b>${esc(d.t)||'Title'}</b><small>${esc((d.g||'GENRE').toUpperCase())} · ${esc(d.y||'YEAR')}${d.vj?' · '+esc(d.vj):''}</small></div></div></div>`;
+  return `<div class="pc"><div class="mpv"><div class="mth">${isUrl(d.th)?`<img src="${esc(d.th)}" alt="" onerror="this.remove()">`:''}<span class="tg">${d.k=='series'?(d.tr?'SERIES':'RAW'):(d.tr?'MOVIE':'RAW')}</span><span class="du">${esc(n)}</span></div><div class="mti"><b>${esc(d.t)||'Title'}</b><small>${esc((d.g||'GENRE').toUpperCase())} · ${esc(d.y||'YEAR')}${d.vj?' · '+esc(d.vj):''}</small></div></div></div>`;
 }
 const pvM=()=>{$('#pv').innerHTML=prevM(draft)};
 function newMv(k){
@@ -850,76 +964,124 @@ function newMv(k){
 }
 function openMv(id){const x=MV.find(e=>e.id==id);if(!x)return;mode=x.k=='series'?'s':'m';isNew=false;draft=JSON.parse(JSON.stringify(x));showMv()}
 function showMv(){
-  const d=draft,se=d.k=='series';
+  const d=draft,se=d.k=='series',top=new Date().getFullYear()+1,yrs=[];
+  for(let y=top;y>=1950;y--)yrs.push(y);if(d.y&&!yrs.includes(+d.y))yrs.push(+d.y);
   $('#dr').innerHTML=`<div class="dh"><h2>${isNew?'New ':'Edit '}${se?'series':'movie'}</h2><button class="ib" aria-label="Close" onclick="closeEd()">&#10005;</button></div>
   <div class="db"><div><label class="lab">How it looks in the app</label><div id="pv">${prevM(d)}</div></div>
+  <h3 class="gh3">Details</h3>
   <div class="f2">
-    <div style="grid-column:1/-1"><label class="lab">Title</label><input value="${esc(d.t)}" placeholder="e.g. The Last Stand of the Fallen King" oninput="draft.t=this.value;pvM()"></div>
-    <div><label class="lab">Genre</label><input list="dl-genre" style="text-transform:uppercase" value="${esc(d.g)}" placeholder="ACTION" oninput="draft.g=this.value;pvM()">${dlist('dl-genre',[...GENRES,...MV.map(x=>x.g)])}</div>
-    <div><label class="lab">Year</label><input type="number" min="1900" max="2100" value="${esc(d.y)}" placeholder="2025" oninput="draft.y=this.value;pvM()"></div>
+    <div style="grid-column:1/-1"><label class="lab">Title</label><input id="f_t" value="${esc(d.t)}" placeholder="e.g. The Last Stand of the Fallen King" oninput="draft.t=this.value;clrE('t');pvM()"><small class="err" id="e_t"></small></div>
+    <div><label class="lab">Genre</label><button type="button" class="tpb" id="f_g" onclick="pk('genre')"><span>${esc(d.g)||'Choose a genre'}</span></button><small class="err" id="e_g"></small></div>
+    <div><label class="lab">Year</label><select id="f_y" onchange="draft.y=this.value;clrE('y');pvM()"><option value="">Select year</option>${yrs.map(y=>`<option ${String(d.y)==String(y)?'selected':''}>${y}</option>`).join('')}</select><small class="err" id="e_y"></small></div>
     <div><label class="lab">Translation</label><select onchange="draft.tr=this.value=='1';if(!draft.tr)draft.vj='';showMv()"><option value="1" ${d.tr?'selected':''}>Translated</option><option value="0" ${d.tr?'':'selected'}>Non-translated (raw)</option></select></div>
-    ${d.tr?`<div><label class="lab">VJ</label><input list="dl-vj" value="${esc(d.vj)}" placeholder="VJ Emmy" oninput="draft.vj=this.value;pvM()">${dlist('dl-vj',MV.map(x=>x.vj))}</div>`:'<div></div>'}
-    ${se?'':`<div><label class="lab">Length</label><input class="mono" value="${esc(d.d)}" placeholder="1:42:15" oninput="draft.d=this.value;pvM()"></div><div></div>`}
-    <div style="grid-column:1/-1"><label class="lab">Thumbnail link (16:10 image)</label><input class="mono" value="${esc(d.th)}" placeholder="https://.../poster.jpg" oninput="draft.th=this.value;pvM()"></div>
+    ${d.tr?`<div><label class="lab">VJ</label><button type="button" class="tpb" id="f_vj" onclick="pk('vj')"><span>${esc(d.vj)||'Choose a VJ'}</span></button><small class="err" id="e_vj"></small></div>`:'<div></div>'}
+    ${se?'':`<div><label class="lab">Running time</label><button type="button" class="tpb tk" id="f_d" onclick="openTm('runtime',draft.d,v=>{draft.d=v;$('#dtxt').textContent=v;clrE('d');pvM()})"><span id="dtxt">${esc(d.d)||'Set running time'}</span></button><small class="err" id="e_d"></small></div><div></div>`}
   </div>
-  ${se?`<div><div class="sh" style="margin-bottom:6px"><b style="flex:1">Seasons and episodes</b><button class="btn gh" style="padding:7px 12px" onclick="addSe()">Add season</button></div><div id="se" style="display:grid;gap:10px"></div></div>`
-  :`<div><div class="sh" style="margin-bottom:6px"><b style="flex:1">Video sources</b><button class="btn gh" style="padding:7px 12px" onclick="${addSrv}">Add source</button></div><p class="sub" style="margin:0 0 10px">Add the same movie from different sources so the app can fall back if one fails.</p><div id="sl" style="display:grid;gap:10px"></div></div>`}
+  <h3 class="gh3">Artwork</h3>
+  ${imf('th','Thumbnail link (16:10 poster)',d.th,'draft.th',0,1)}
+  <h3 class="gh3">${se?'Episodes':'Video'}</h3>
+  ${se?`<div><div class="sh" style="margin-bottom:6px"><b style="flex:1">Seasons and episodes</b><button type="button" class="btn gh" style="padding:7px 12px" onclick="addSe()">Add season</button></div><small class="err" id="e_se"></small><div id="se" style="display:grid;gap:10px;margin-top:8px"></div></div>`
+  :srcBlock('Video sources','Add the same movie from different sources so the app can fall back if one fails.','Add source')}
   </div>
   <div class="df"><button class="btn" onclick="saveMv()">${se?'Save series':'Save movie'}</button><button class="btn gh" onclick="closeEd()">Cancel</button>${isNew?'':`<button class="btn rd" style="margin-left:auto" onclick="askDel('m','${d.id}')">Delete</button>`}</div>`;
-  se?rSe():rSv();$('#dr').classList.add('on');$('#ov').classList.add('on');
+  se?rSe():rSv();imgInit();$('#dr').classList.add('on');$('#ov').classList.add('on');
 }
 function rSe(){
-  $('#se').innerHTML=draft.seasons.map((s,i)=>`<div class="sv"><div class="sh"><b style="flex:1">Season ${s.n}</b><button class="btn gh" style="padding:6px 10px" onclick="addEp(${i})">Add episode</button><button class="ib x" aria-label="Remove season" onclick="delSe(${i})">&#10005;</button></div>
-  ${s.eps.map((e,j)=>`<div class="ep"><div class="epr"><span class="mono epn">${pad(e.n)}</span><input value="${esc(e.t)}" placeholder="Episode title" oninput="draft.seasons[${i}].eps[${j}].t=this.value"><input class="mono" value="${esc(e.d)}" placeholder="42:15" aria-label="Length" oninput="draft.seasons[${i}].eps[${j}].d=this.value"><button class="ib x" aria-label="Remove episode" onclick="delEp(${i},${j})">&#10005;</button></div>
-  <input class="mono" value="${esc(e.u)}" placeholder="Video link (.m3u8 or .mp4)" oninput="draft.seasons[${i}].eps[${j}].u=this.value;pvM()">
-  <input class="mono" value="${esc(e.au||'')}" placeholder="Audio track link (optional)" oninput="draft.seasons[${i}].eps[${j}].au=this.value">
-  <input class="mono" value="${esc(e.th||'')}" placeholder="Episode thumbnail link (optional)" oninput="draft.seasons[${i}].eps[${j}].th=this.value"></div>`).join('')||'<p class="sub" style="margin:8px 0 0">No episodes yet.</p>'}</div>`).join('')||'<div class="empty" style="border:1px dashed var(--line2);border-radius:14px;padding:20px">No seasons yet. Add one.</div>';
+  $('#se').innerHTML=draft.seasons.map((s,i)=>`<div class="sv"><div class="sh"><b style="flex:1">Season ${s.n}</b><button type="button" class="btn gh" style="padding:6px 10px" onclick="addEp(${i})">Add episode</button><button type="button" class="ib x" aria-label="Remove season ${s.n}" onclick="delSe(${i})">&#10005;</button></div><small class="err" id="e_s${i}"></small>
+  ${s.eps.map((e,j)=>{const k=i+'_'+j,p=`draft.seasons[${i}].eps[${j}]`;return `<div class="ep"><div class="epr"><span class="mono epn">${pad(e.n)}</span><input id="f_et${k}" value="${esc(e.t)}" placeholder="Episode title" oninput="${p}.t=this.value;clrE('et${k}')"><button type="button" class="tpb tk" id="f_ed${k}" aria-label="Episode running time" onclick="openTm('runtime',${p}.d,v=>{${p}.d=v;$('#ed${k}').textContent=v;clrE('ed${k}')})"><span id="ed${k}">${esc(e.d)||'Time'}</span></button><button type="button" class="ib x" aria-label="Remove episode" onclick="delEp(${i},${j})">&#10005;</button></div>
+  <small class="err" id="e_et${k}"></small><small class="err" id="e_ed${k}"></small>
+  <input id="f_eu${k}" class="mono" value="${esc(e.u)}" placeholder="Video link (.m3u8 or .mp4)" oninput="${p}.u=this.value;clrE('eu${k}')"><small class="err" id="e_eu${k}"></small>
+  <input id="f_ea${k}" class="mono" value="${esc(e.au||'')}" placeholder="Audio track link (optional)" oninput="${p}.au=this.value;clrE('ea${k}')"><small class="err" id="e_ea${k}"></small>
+  ${imf('eh'+k,'Episode thumbnail',e.th,p+'.th',0,0)}</div>`}).join('')||'<p class="sub" style="margin:8px 0 0">No episodes yet.</p>'}</div>`).join('')||'<div class="empty" style="border:1px dashed var(--line2);border-radius:14px;padding:20px">No seasons yet. Add one.</div>';
+  document.querySelectorAll('#se .imf input').forEach(i=>imgChk(i));
 }
-function addSe(){draft.seasons.push({n:draft.seasons.length+1,eps:[{n:1,t:'Episode 1',d:'',th:'',u:'https://',au:''}]});rSe();pvM()}
+function addSe(){draft.seasons.push({n:draft.seasons.length+1,eps:[{n:1,t:'Episode 1',d:'',th:'',u:'https://',au:''}]});clrE('se');rSe();pvM()}
 function delSe(i){draft.seasons.splice(i,1);draft.seasons.forEach((s,k)=>s.n=k+1);rSe();pvM()}
 function addEp(i){const s=draft.seasons[i],n=s.eps.length+1;s.eps.push({n,t:'Episode '+n,d:'',th:'',u:'https://',au:''});rSe();pvM()}
 function delEp(i,j){const s=draft.seasons[i];s.eps.splice(j,1);s.eps.forEach((e,k)=>e.n=k+1);rSe();pvM()}
+function vMv(){
+  const d=draft,se=d.k=='series';EV=[];
+  if(d.t.trim().length<2)fe('t','Enter the title.');
+  if(!d.g.trim())fe('g','Choose a genre.');
+  if(!(+d.y>=1950&&+d.y<=new Date().getFullYear()+1))fe('y','Select the release year.');
+  if(d.tr&&!String(d.vj||'').trim())fe('vj','Choose the VJ, or switch to Non-translated.');
+  if(!d.th.trim())fe('th','Add the thumbnail link.');else if(!isUrl(d.th))fe('th','This image link is not valid. It should start with https://');
+  if(!se){if(!durOk(d.d))fe('d','Set the running time.');svChk()}
+  else{
+    if(!d.seasons.length)fe('se','Add at least one season.');
+    d.seasons.forEach((s,i)=>{
+      if(!s.eps.length)fe('s'+i,`Season ${s.n} has no episodes. Add one or remove the season.`);
+      s.eps.forEach((e,j)=>{const k=i+'_'+j;
+        if(!e.t.trim())fe('et'+k,'Enter the episode title.');
+        if(!durOk(e.d))fe('ed'+k,'Set the episode running time.');
+        if(!isUrl(e.u))fe('eu'+k,'Enter a valid video link starting with https://');
+        if(e.au&&e.au.trim()&&!isUrl(e.au))fe('ea'+k,'This audio link is not valid.');
+        if(e.th&&e.th.trim()&&!isUrl(e.th))fe('eh'+k,'This image link is not valid.');
+      });
+    });
+  }
+  return EV;
+}
 function saveMv(){
   const d=draft,se=d.k=='series';
   d.t=d.t.trim();d.g=String(d.g||'').trim().toUpperCase();d.th=(d.th||'').trim();d.vj=d.tr?String(d.vj||'').trim():'';
-  if(!d.t)return toast('Enter a title',1);
-  if(se){
-    if(!epTotal(d))return toast('Add at least one episode',1);
-    d.seasons.forEach(s=>s.eps.forEach(e=>{e.t=e.t.trim()||('Episode '+e.n);e.u=realUrl(e.u)?e.u.trim():'';e.d=e.d.trim();e.th=(e.th||'').trim();e.au=(e.au||'').trim()}));
-  }else d.d=(d.d||'').trim();
+  vMv();showErrs();
+  if(EV.length)return toast(`Fix ${EV.length} item${EV.length>1?'s':''} marked in red`,1);
+  if(se)d.seasons.forEach(s=>s.eps.forEach(e=>{e.t=e.t.trim();e.u=e.u.trim();e.au=(e.au||'').trim();e.th=(e.th||'').trim()}));
   if(isNew)MV.push(d);else MV[MV.findIndex(e=>e.id==d.id)]=d;
   mark((isNew?'Added ':'Updated ')+(se?'series ':'movie ')+d.t);closeEd();render();toast(se?'Series saved':'Movie saved');
 }
 
 /* channel editor */
+const SWS=[['#7a3fff','#3f1f8a'],['#1a6dff','#003bb0'],['#0ea5e9','#075985'],['#14b8a6','#0f766e'],['#16a34a','#065f1f'],['#eab308','#78350f'],['#f97316','#7c2d12'],['#dc2626','#7f1d1d'],['#ec4899','#831843'],['#334155','#0f172a']];
+function setSw(i){draft.c1=SWS[i][0];draft.c2=SWS[i][1];$('#f_c1').value=draft.c1;$('#f_c2').value=draft.c2;clrE('c1');pvC()}
 function prevC(d){
   return `<div class="pc"><div class="mpv">${cbadge(d,1)}<div class="mti"><b>${esc(d.t)||'Channel name'}</b><small>${esc(d.pr)||'Current programme'}</small><span class="live">LIVE</span></div></div></div>`;
 }
 const pvC=()=>{$('#pv').innerHTML=prevC(draft)};
-function newCh(){mode='c';isNew=true;draft={id:Date.now(),t:'',cat:'General',country:'Uganda',ini:'',iniT:false,c1:'#7a3fff',c2:'#3f1f8a',pr:'',sv:[]};showCh()}
+function newCh(){mode='c';isNew=true;draft={id:Date.now(),t:'',cat:'',country:'Uganda',ini:'',iniT:false,lg:'',c1:'#7a3fff',c2:'#3f1f8a',pr:'',sv:[]};showCh()}
 function openCh(id){const x=CHN.find(e=>e.id==id);if(!x)return;mode='c';isNew=false;draft=JSON.parse(JSON.stringify(x));draft.iniT=!!x.ini;showCh()}
 function showCh(){
   const d=draft;
   $('#dr').innerHTML=`<div class="dh"><h2>${isNew?'New channel':'Edit channel'}</h2><button class="ib" aria-label="Close" onclick="closeEd()">&#10005;</button></div>
   <div class="db"><div><label class="lab">How it looks in the app</label><div id="pv">${prevC(d)}</div></div>
+  <h3 class="gh3">Details</h3>
   <div class="f2">
-    <div style="grid-column:1/-1"><label class="lab">Channel name</label><input value="${esc(d.t)}" placeholder="e.g. NBS TV" oninput="draft.t=this.value;if(!draft.iniT){draft.ini=iniOf(draft.t);$('#c_ini').value=draft.ini}pvC()"></div>
-    <div><label class="lab">Category</label><input list="dl-cat" value="${esc(d.cat)}" placeholder="General" oninput="draft.cat=this.value">${dlist('dl-cat',[...CATS,...CHN.map(x=>x.cat)])}</div>
-    <div><label class="lab">Country</label><input list="dl-ctry" value="${esc(d.country)}" placeholder="Uganda" oninput="draft.country=this.value">${dlist('dl-ctry',[...CTRY,...CHN.map(x=>x.country)])}</div>
-    <div><label class="lab">Initials (shown on the logo)</label><input id="c_ini" maxlength="4" style="text-transform:uppercase" value="${esc(d.ini)}" placeholder="NBS" oninput="draft.ini=this.value;draft.iniT=true;pvC()"></div>
-    <div><label class="lab">Current programme</label><input value="${esc(d.pr)}" placeholder="News at 9" oninput="draft.pr=this.value;pvC()"></div>
-    <div><label class="lab">Logo colour 1</label><input type="color" value="${hex(d.c1)}" oninput="draft.c1=this.value;pvC()"></div>
-    <div><label class="lab">Logo colour 2</label><input type="color" value="${hex(d.c2)}" oninput="draft.c2=this.value;pvC()"></div>
+    <div style="grid-column:1/-1"><label class="lab">Channel name</label><input id="f_t" value="${esc(d.t)}" placeholder="e.g. NBS TV" oninput="draft.t=this.value;clrE('t');if(!draft.iniT){draft.ini=iniOf(draft.t);$('#f_ini').value=draft.ini;clrE('ini')}pvC()"><small class="err" id="e_t"></small></div>
+    <div><label class="lab">Category</label><button type="button" class="tpb" id="f_cat" onclick="pk('cat')"><span>${esc(d.cat)||'Choose a category'}</span></button><small class="err" id="e_cat"></small></div>
+    <div><label class="lab">Country</label><button type="button" class="tpb" id="f_country" onclick="pk('country')"><span>${esc(d.country)||'Choose a country'}</span></button><small class="err" id="e_country"></small></div>
+    <div><label class="lab">Initials (1 to 4 letters)</label><input id="f_ini" maxlength="4" style="text-transform:uppercase" value="${esc(d.ini)}" placeholder="NBS" oninput="draft.ini=this.value;draft.iniT=true;clrE('ini');pvC()"><small class="err" id="e_ini"></small></div>
+    <div><label class="lab">Current programme (optional)</label><input value="${esc(d.pr)}" placeholder="News at 9" oninput="draft.pr=this.value;pvC()"></div>
   </div>
-  <div><div class="sh" style="margin-bottom:6px"><b style="flex:1">Live streams</b><button class="btn gh" style="padding:7px 12px" onclick="${addSrv}">Add stream</button></div><p class="sub" style="margin:0 0 10px">Add several links so the app can fall back to another one if a stream fails.</p><div id="sl" style="display:grid;gap:10px"></div></div></div>
+  <h3 class="gh3">Logo</h3>
+  ${imf('lg','Logo image link (square)',d.lg,'draft.lg',1,0)}
+  <div class="f2">
+    <div><label class="lab">Logo colour 1</label><input id="f_c1" type="color" value="${hex(d.c1)}" oninput="draft.c1=this.value;clrE('c1');pvC()"></div>
+    <div><label class="lab">Logo colour 2</label><input id="f_c2" type="color" value="${hex(d.c2)}" oninput="draft.c2=this.value;pvC()"></div>
+  </div>
+  <div><label class="lab">Quick colours</label><div class="sws">${SWS.map((c,i)=>`<button type="button" class="sw" aria-label="Colour set ${i+1}" style="background:linear-gradient(140deg,${c[0]},${c[1]})" onclick="setSw(${i})"></button>`).join('')}</div><small class="err" id="e_c1"></small></div>
+  <h3 class="gh3">Streams</h3>
+  ${srcBlock('Live streams','Add several links so the app can fall back to another one if a stream fails.','Add stream')}
+  </div>
   <div class="df"><button class="btn" onclick="saveCh()">Save channel</button><button class="btn gh" onclick="closeEd()">Cancel</button>${isNew?'':`<button class="btn rd" style="margin-left:auto" onclick="askDel('c','${d.id}')">Delete</button>`}</div>`;
-  rSv();$('#dr').classList.add('on');$('#ov').classList.add('on');
+  rSv();imgInit();$('#dr').classList.add('on');$('#ov').classList.add('on');
+}
+function vCh(){
+  const d=draft;EV=[];
+  if(d.t.trim().length<2)fe('t','Enter the channel name.');
+  if(!d.cat.trim())fe('cat','Choose a category.');
+  if(!d.country.trim())fe('country','Choose a country.');
+  if(!/^[A-Za-z0-9!&]{1,4}$/.test(String(d.ini||'').trim()))fe('ini','Enter 1 to 4 letters or digits.');
+  if(!/^#[0-9a-f]{6}$/i.test(d.c1||'')||!/^#[0-9a-f]{6}$/i.test(d.c2||''))fe('c1','Pick both logo colours.');
+  if(d.lg&&d.lg.trim()&&!isUrl(d.lg))fe('lg','This image link is not valid. It should start with https://');
+  svChk();
+  return EV;
 }
 function saveCh(){
-  const d=draft;d.t=d.t.trim();
-  if(!d.t)return toast('Enter a channel name',1);
-  d.cat=(d.cat||'').trim()||'General';d.country=(d.country||'').trim();d.pr=(d.pr||'').trim();
-  d.ini=(d.ini||iniOf(d.t)).trim().toUpperCase().slice(0,4);d.c1=hex(d.c1);d.c2=hex(d.c2);delete d.iniT;
+  const d=draft;d.t=d.t.trim();d.cat=(d.cat||'').trim();d.country=(d.country||'').trim();d.pr=(d.pr||'').trim();d.lg=(d.lg||'').trim();d.ini=String(d.ini||'').trim().toUpperCase();
+  vCh();showErrs();
+  if(EV.length)return toast(`Fix ${EV.length} item${EV.length>1?'s':''} marked in red`,1);
+  delete d.iniT;
   if(isNew)CHN.push(d);else CHN[CHN.findIndex(e=>e.id==d.id)]=d;
   mark((isNew?'Added':'Updated')+' channel '+d.t);closeEd();render();toast('Channel saved');
 }
