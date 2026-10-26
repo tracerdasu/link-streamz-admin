@@ -515,7 +515,7 @@ async function doPush(){
       status: { g: 'stable', y: 'average', r: 'unstable' }[x.st],
       recommended: x.r, useProxy: !!x.px,
       delaySeconds: x.dl ?? null,
-      headers: Object.fromEntries((x.hd || []).filter(h => h.k.trim()).map(h => [h.k.trim(), SECRET(h.k) ? '••••••' : h.v]))
+      headers: Object.fromEntries((x.hd || []).filter(h => h.k.trim()).map(h => [h.k.trim(), h.v]))
     };
     // Only include audio when it's non-empty, so old entries stay byte-identical
     if (x.au && x.au.trim()) entry.audio = x.au.trim();
@@ -841,14 +841,14 @@ function mvOut(sj){
   };
 }
 function chOut(sj){
-  return CHN.map(c=>{const s=sj(c.sv);return{id:c.id,name:c.t,category:c.cat,country:c.country,initials:c.ini,logo:c.lg||'',color1:c.c1,color2:c.c2,program:c.pr||'',videoUrl:vUrl(s),servers:s}});
+  return CHN.map(c=>{const s=sj(c.sv);return{id:c.id,name:c.t,category:c.cat,country:c.country,initials:c.ini,logo:c.lg||'',thumb:c.lg||'',thumbnail:c.lg||'',color1:c.c1,color2:c.c2,program:c.pr||'',videoUrl:vUrl(s),servers:s}});
 }
 /* JSON in */
 const svOrLink=x=>(x.servers&&x.servers.length?x.servers:(x.videoUrl?[{name:'Main',url:x.videoUrl,quality:'HD',status:'stable',recommended:true}]:[])).map(svFromJson);
 const mvBase=(x,k)=>({id:x.id,k,t:x.title||'',g:x.genre||'',y:x.year??'',vj:x.vj||'',tr:x.translated!==false,th:x.thumb||''});
 const mvFromJson=x=>({...mvBase(x,'movie'),d:x.duration||'',sv:svOrLink(x)});
 const seFromJson=x=>({...mvBase(x,'series'),seasons:(x.seasons||[]).map((se,i)=>({n:se.number||i+1,eps:(se.episodes||[]).map((e,j)=>({n:e.number||j+1,t:e.title||'',d:e.duration||'',th:e.thumb||'',u:e.videoUrl||'',au:e.audioUrl||''}))}))});
-const chFromJson=x=>({id:x.id,t:x.name||'',cat:x.category||'General',country:x.country||'',ini:x.initials||'',lg:x.logo||'',c1:x.color1||'#7a3fff',c2:x.color2||'#3f1f8a',pr:x.program||'',sv:svOrLink(x)});
+const chFromJson=x=>({id:x.id,t:x.name||'',cat:x.category||'General',country:x.country||'',ini:x.initials||'',lg:x.logo||x.thumb||x.thumbnail||x.thumbnailUrl||'',c1:x.color1||'#7a3fff',c2:x.color2||'#3f1f8a',pr:x.program||'',sv:svOrLink(x)});
 
 /* lists */
 function rMovies(){
@@ -1054,7 +1054,7 @@ function showCh(){
     <div><label class="lab">Current programme (optional)</label><input value="${esc(d.pr)}" placeholder="News at 9" oninput="draft.pr=this.value;pvC()"></div>
   </div>
   <h3 class="gh3">Logo</h3>
-  ${imf('lg','Logo image link (square)',d.lg,'draft.lg',1,0)}
+  ${imf('lg','Thumbnail / logo image link (square)',d.lg,'draft.lg',1,0)}
   <div class="f2">
     <div><label class="lab">Logo colour 1</label><input id="f_c1" type="color" value="${hex(d.c1)}" oninput="draft.c1=this.value;clrE('c1');pvC()"></div>
     <div><label class="lab">Logo colour 2</label><input id="f_c2" type="color" value="${hex(d.c2)}" oninput="draft.c2=this.value;pvC()"></div>
