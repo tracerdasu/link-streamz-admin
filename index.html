@@ -310,10 +310,10 @@ input[type=color]{padding:3px;height:40px;cursor:pointer}
 <div class="tp" id="op"><div class="tpc" role="dialog" aria-label="Choose an option"><div class="tph"><div style="flex:1;min-width:0"><b id="opt"></b><br><small id="opc"></small></div><button class="ib" aria-label="Close" onclick="closeOp()">&#10005;</button></div><input id="ops" type="search" autocomplete="off" placeholder="Search or type a new one" oninput="opQ=this.value;opA=0;renderOp()" onkeydown="opKey(event)"><div id="opl"></div></div></div>
 <button class="vfab" id="vfab" onclick="vpnOpen()" aria-label="Set VPN"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Set VPN</button>
 <section class="vp" id="vp" role="dialog" aria-modal="true" aria-label="VPN configuration"><div class="vw">
-<div class="vh"><button class="ib" onclick="vpnClose()" aria-label="Back">&#8592;</button><div style="flex:1;min-width:0"><h1>VPN configuration</h1><p class="sub">OpenVPN files the app downloads and uses for all its traffic</p></div><button class="btn gh" onclick="vpnLoad()">Refresh</button></div>
-<div class="warn"><b>Keep the repository private</b><span>These files can contain keys and passwords. They are stored in <span class="mono">vpn/</span> of your data repo and must never be copied to the public mirror.</span></div>
+<div class="vh"><button class="ib" onclick="vpnClose()" aria-label="Back">&#8592;</button><div style="flex:1;min-width:0"><h1>VPN configuration</h1><p class="sub">WireGuard configs the app downloads and uses for all its traffic</p></div><button class="btn gh" onclick="vpnLoad()">Refresh</button></div>
+<div class="warn"><b>Keep the repository private</b><span>Each config contains a WireGuard private key. They are stored in <span class="mono">vpn/</span> of your data repo and must never be copied to the public mirror.</span></div>
 <div class="panel"><h2>Upload a config</h2><p class="sub" style="margin-bottom:12px">Saved byte-for-byte, then read back and checked against its SHA-256.</p>
-<label class="lab">OpenVPN file (.ovpn)</label><input type="file" id="vf">
+<label class="lab">WireGuard config (.conf)</label><input type="file" id="vf">
 <label class="lab" style="margin-top:12px">Expires in (days)</label><input type="number" id="vd" min="1" max="3650" value="30" inputmode="numeric">
 <div class="chips" style="margin:10px 0 0"><button class="chip mini" onclick="$('#vd').value=7">7 days</button><button class="chip mini" onclick="$('#vd').value=30">30 days</button><button class="chip mini" onclick="$('#vd').value=90">90 days</button><button class="chip mini" onclick="$('#vd').value=180">180 days</button><button class="chip mini" onclick="$('#vd').value=365">1 year</button></div>
 <button class="btn" id="vu" style="margin-top:14px" onclick="vpnUpload()">Upload to server</button></div>
@@ -1132,7 +1132,7 @@ function askDelX(k,id){
 }
 
 // ── VPN CONFIG MANAGER ────────────────────────────────────────────────
-// Server layout (private data repo): vpn/index.json (manifest) + vpn/files/<id>.ovpn (raw bytes)
+// Server layout (private data repo): vpn/index.json (manifest) + vpn/files/<id>.conf (raw bytes)
 let VPN={m:null,sha:null,busy:false,err:''};
 const vg=(p,o={})=>fetch(`https://api.github.com/repos/${ghUser}/${ghRepo}/contents/${p}`,{...o,headers:{'Authorization':`token ${ghToken}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json',...(o.headers||{})}});
 const b64=u=>{let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s)};
@@ -1157,10 +1157,10 @@ async function vpnLoad(){
 function vpnRender(){
   const el=$('#vb'),m=VPN.m,err=VPN.err?`<div class="warn bad"><b>Problem</b><span>${esc(VPN.err)}</span></div>`:'';
   if(!m){el.innerHTML=err||`<div class="empty"><span class="spin"></span>Loading VPN files from GitHub...</div>`;return}
-  const a=m.files.find(f=>f.id==m.active),live=a&&vday(a)>0;
-  const st=!a?'No file selected. The app will run without VPN.':live?`In use by the app: <b>${esc(a.name)}</b>`:`The selected file <b>${esc(a.name)}</b> has expired. The app will run without VPN.`;
-  const rows=m.files.map(f=>{const d=vday(f),ex=d<=0,on=m.active==f.id&&!ex;
-    return `<div class="vr${on?' act':''}"><button class="vck${on?' on':''}" ${ex?'disabled':''} aria-pressed="${on}" aria-label="Use this file in the app" onclick="vpnUse('${f.id}')">&#10003;</button><div class="vn"><b>${esc(f.name)}</b><small>${esc(f.host||'no remote found')} &middot; ${(f.size/1024).toFixed(1)} KB &middot; added ${new Date(f.at).toLocaleDateString()}</small></div><span class="vx" data-s="${ex?'x':d<=7?'w':'ok'}">${ex?'Expired':d+(d>1?' days':' day')+' left'}</span><button class="ib x" aria-label="Delete file" onclick="vpnAsk('${f.id}')">&#10005;</button></div>`}).join('');
+  const a=m.files.find(f=>f.id==m.active),live=a&&vday(a)>0&&a.type=='wireguard';
+  const st=!a?'No file selected. The app will run without VPN.':live?`In use by the app: <b>${esc(a.name)}</b>`:`The selected file <b>${esc(a.name)}</b> cannot be used (expired or not WireGuard). The app will run without VPN.`;
+  const rows=m.files.map(f=>{const d=vday(f),wg=f.type=='wireguard',ex=d<=0||!wg,on=m.active==f.id&&!ex;
+    return `<div class="vr${on?' act':''}"><button class="vck${on?' on':''}" ${ex?'disabled':''} aria-pressed="${on}" aria-label="Use this file in the app" onclick="vpnUse('${f.id}')">&#10003;</button><div class="vn"><b>${esc(f.name)}</b><small>${esc(f.host||'no endpoint found')} &middot; ${(f.size/1024).toFixed(1)} KB &middot; added ${new Date(f.at).toLocaleDateString()}</small></div><span class="vx" data-s="${ex?'x':d<=7?'w':'ok'}">${!wg?'Not WireGuard':d<=0?'Expired':d+(d>1?' days':' day')+' left'}</span><button class="ib x" aria-label="Delete file" onclick="vpnAsk('${f.id}')">&#10005;</button></div>`}).join('');
   el.innerHTML=`${err}<div class="panel"><h2>Files on the server</h2><p class="sub">${st}</p>${rows||'<div class="empty">No files uploaded yet.</div>'}${m.files.length?'<p class="sub" style="margin-top:12px">Tap the tick to use a file. Tap it again to use no file.</p>':''}</div>`;
 }
 async function vpnOp(fn,ok){
@@ -1180,11 +1180,13 @@ async function vpnUpload(){
   if(!ghUser||!ghRepo||!ghToken)return toast('Add your GitHub details in Publish first.',true);
   if(!VPN.m)return toast('Still loading the file list. Try again in a moment.',true);
   const f=$('#vf').files[0],days=Math.floor(+$('#vd').value);
-  if(!f)return toast('Choose an OpenVPN file first.',true);
+  if(!f)return toast('Choose a WireGuard config first.',true);
   if(!(days>=1&&days<=3650))return toast('Expiry must be between 1 and 3650 days.',true);
   if(f.size<1||f.size>1048576)return toast('The file must be between 1 byte and 1 MB.',true);
+  const tx=await f.text();
+  if(!/^\s*\[Interface\]/mi.test(tx)||!/^\s*PrivateKey\s*=/mi.test(tx)||!/^\s*\[Peer\]/mi.test(tx))return toast('This does not look like a WireGuard config.',true);
   await vpnOp(async()=>{
-    const u8=new Uint8Array(await f.arrayBuffer()),hash=await sha256(u8),id=Date.now().toString(36)+Math.random().toString(36).slice(2,5),path=`vpn/files/${id}.ovpn`;
+    const u8=new Uint8Array(await f.arrayBuffer()),hash=await sha256(u8),id=Date.now().toString(36)+Math.random().toString(36).slice(2,5),path=`vpn/files/${id}.conf`;
     const r=await vg(path,{method:'PUT',body:JSON.stringify({message:'VPN: add '+f.name,content:b64(u8)})});
     if(!r.ok)throw new Error(await vmsg(r,'Upload failed'));
     const blob=(await r.json()).content.sha;
@@ -1192,8 +1194,8 @@ async function vpnUpload(){
       const c=await vg(path+'?t='+Date.now(),{headers:{'Accept':'application/vnd.github.v3.raw'}});
       const back=new Uint8Array(await c.arrayBuffer());
       if(!c.ok||back.length!==u8.length||(hash&&await sha256(back)!==hash))throw new Error('Verification failed: the stored file differs from yours, so it was removed.');
-      const t=new TextDecoder().decode(u8).match(/^\s*remote\s+(\S+)(?:\s+(\d+))?/m),m=JSON.parse(JSON.stringify(VPN.m));
-      m.files.push({id,name:f.name,path,size:u8.length,sha256:hash,at:new Date().toISOString(),exp:new Date(Date.now()+days*864e5).toISOString(),host:t?t[1]+(t[2]?':'+t[2]:''):''});
+      const t=new TextDecoder().decode(u8).match(/^\s*Endpoint\s*=\s*(\S+)/mi),m=JSON.parse(JSON.stringify(VPN.m));
+      m.files.push({id,name:f.name,type:'wireguard',path,size:u8.length,sha256:hash,at:new Date().toISOString(),exp:new Date(Date.now()+days*864e5).toISOString(),host:t?t[1]:''});
       await vpnSave(m,'VPN: register '+f.name);
     }catch(e){await vg(path,{method:'DELETE',body:JSON.stringify({message:'VPN: rollback',sha:blob})}).catch(()=>{});throw e}
     $('#vf').value='';
