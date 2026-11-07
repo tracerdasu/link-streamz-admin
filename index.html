@@ -311,7 +311,8 @@ input[type=color]{padding:3px;height:40px;cursor:pointer}
 <button class="vfab" id="vfab" onclick="vpnOpen()" aria-label="Set VPN"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Set VPN</button>
 <section class="vp" id="vp" role="dialog" aria-modal="true" aria-label="VPN configuration"><div class="vw">
 <div class="vh"><button class="ib" onclick="vpnClose()" aria-label="Back">&#8592;</button><div style="flex:1;min-width:0"><h1>VPN configuration</h1><p class="sub">WireGuard configs the app downloads and uses for all its traffic</p></div><button class="btn gh" onclick="vpnLoad()">Refresh</button></div>
-<div class="warn"><b>Keep the repository private</b><span>Each config contains a WireGuard private key. They are stored in <span class="mono">vpn/</span> of your data repo and must never be copied to the public mirror.</span></div>
+<div class="warn bad"><b>This repository is public</b><span>Anyone can read these configs and their WireGuard private key. Use a dedicated WireGuard peer for the app that can reach nothing else, and set a short expiry.</span></div>
+<div class="panel"><label class="lab">VPN repository (same GitHub user, public)</label><input id="vr" placeholder="link-streamz-vpn" onchange="vpnRepoSet(this.value)"></div>
 <div class="panel"><h2>Upload a config</h2><p class="sub" style="margin-bottom:12px">Saved byte-for-byte, then read back and checked against its SHA-256.</p>
 <label class="lab">WireGuard config (.conf)</label><input type="file" id="vf">
 <label class="lab" style="margin-top:12px">Expires in (days)</label><input type="number" id="vd" min="1" max="3650" value="30" inputmode="numeric">
@@ -1134,20 +1135,22 @@ function askDelX(k,id){
 // ── VPN CONFIG MANAGER ────────────────────────────────────────────────
 // Server layout (private data repo): vpn/index.json (manifest) + vpn/files/<id>.conf (raw bytes)
 let VPN={m:null,sha:null,busy:false,err:''};
-const vg=(p,o={})=>fetch(`https://api.github.com/repos/${ghUser}/${ghRepo}/contents/${p}`,{...o,headers:{'Authorization':`token ${ghToken}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json',...(o.headers||{})}});
+let vpnRepo=localStorage.getItem('ls_vpn_repo')||'link-streamz-vpn';
+function vpnRepoSet(v){vpnRepo=v.trim();localStorage.setItem('ls_vpn_repo',vpnRepo);vpnLoad()}
+const vg=(p,o={})=>fetch(`https://api.github.com/repos/${ghUser}/${vpnRepo}/contents/${p}`,{...o,headers:{'Authorization':`token ${ghToken}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json',...(o.headers||{})}});
 const b64=u=>{let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s)};
 const sha256=async u=>window.crypto&&crypto.subtle?[...new Uint8Array(await crypto.subtle.digest('SHA-256',u))].map(b=>b.toString(16).padStart(2,'0')).join(''):'';
 const vday=f=>Math.ceil((new Date(f.exp)-Date.now())/864e5);
 const vmsg=async(r,d)=>{try{return (await r.json()).message||d}catch(e){return d}};
-function vpnOpen(){$('#vp').classList.add('on');vpnLoad()}
+function vpnOpen(){$('#vp').classList.add('on');$('#vr').value=vpnRepo;vpnLoad()}
 function vpnClose(){$('#vp').classList.remove('on')}
 async function vpnLoad(){
   VPN.err='';
-  if(!ghUser||!ghRepo||!ghToken){VPN.m=null;VPN.err='Add your GitHub username, repository and token in Publish first.';return vpnRender()}
+  if(!ghUser||!vpnRepo||!ghToken){VPN.m=null;VPN.err='Add your GitHub username and token in Publish, and the VPN repository name above.';return vpnRender()}
   VPN.m=null;vpnRender();
   try{
     const r=await vg('vpn/index.json?t='+Date.now());
-    if(r.status==404){VPN.m={version:1,active:null,files:[]};VPN.sha=null}
+    if(r.status==404){const q=await fetch(`https://api.github.com/repos/${ghUser}/${vpnRepo}`,{headers:{'Authorization':`token ${ghToken}`}});if(!q.ok)throw new Error(`Cannot open ${ghUser}/${vpnRepo}. Check the repository name and that your token has Contents read and write on it.`);VPN.m={version:1,active:null,files:[]};VPN.sha=null}
     else if(r.status==401||r.status==403)throw new Error('Token rejected. Check your PAT and its repo scope.');
     else if(!r.ok)throw new Error('GitHub returned '+r.status);
     else{const j=await r.json();VPN.sha=j.sha;VPN.m=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\s/g,'')),c=>c.charCodeAt(0))));VPN.m.files=VPN.m.files||[]}
@@ -1177,7 +1180,7 @@ async function vpnSave(m,msg){
 }
 async function vpnUpload(){
   if(VPN.busy)return;
-  if(!ghUser||!ghRepo||!ghToken)return toast('Add your GitHub details in Publish first.',true);
+  if(!ghUser||!vpnRepo||!ghToken)return toast('Add your GitHub details and the VPN repository first.',true);
   if(!VPN.m)return toast('Still loading the file list. Try again in a moment.',true);
   const f=$('#vf').files[0],days=Math.floor(+$('#vd').value);
   if(!f)return toast('Choose a WireGuard config first.',true);
