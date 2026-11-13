@@ -287,6 +287,20 @@ input[type=color]{padding:3px;height:40px;cursor:pointer}
 .vx[data-s=x]{color:var(--r);border-color:rgba(255,77,77,.5);background:rgba(255,77,77,.08)}
 @media(max-width:860px){.vfab{right:14px;bottom:calc(78px + env(safe-area-inset-bottom))}}
 @media(max-width:600px){.vr{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"c n d" "c x x"}.vr .vck{grid-area:c}.vn{grid-area:n}.vx{grid-area:x;justify-self:start}.vr .ib{grid-area:d}}
+/* Link Streamz TV badge (optional per item) */
+.tvr{padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--row)}
+.tvh{display:flex;align-items:center;gap:12px;cursor:pointer}
+.tvh input{width:auto;accent-color:var(--o)}
+.tvh span{flex:1;min-width:0}
+.tvh b{display:block}
+.tvh small{display:block;color:var(--mut);font-size:12px}
+.tvs{display:flex;gap:8px;margin:12px 0 8px}
+.tvs .on{background:var(--o);color:#000;border-color:var(--o)}
+.tvf{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#2a2018,#0d0a08);border:1px solid var(--line2)}
+.tvf img{position:absolute;height:auto}
+.tvg,.tvz{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.tvk{padding:8px 12px}
+.tvb{height:34px;width:auto;flex:none}
 </style>
 </head>
 <body>
@@ -426,7 +440,7 @@ function rPub(){
   const sj=a=>a.map(x=>({name:x.n,url:x.u,quality:x.q,audio:x.au||undefined,status:{g:'stable',y:'average',r:'unstable'}[x.st],recommended:x.r,useProxy:!!x.px,delaySeconds:x.dl??null,headers:Object.fromEntries((x.hd||[]).filter(h=>h.k.trim()).map(h=>[h.k.trim(),SECRET(h.k)?'••••••':h.v]))}));
   const sec=[...E,...H,...MV,...CHN].some(x=>(x.sv||[]).some(v=>(v.hd||[]).some(h=>h.k.trim()))),block=sec&&pubRepo;
   const warn=sec?`<div class="warn ${pubRepo?'bad':''}"><b>${pubRepo?'Publishing is blocked':'Some servers include headers or tokens'}</b><span>${pubRepo?'The repository is public, so anyone could read your stream headers. Switch it to private to publish.':'Keep the repository private so only your app and this console can read them.'}</span></div>`:'';
-  const data=JSON.stringify({settings:{defaultDelaySeconds:DEF},sports:SPORTS,leagues:LG.map(l=>({name:l.n,sport:l.s})),teams:Object.entries(T).map(([code,[name,badge]])=>({code,name,badge})),events:E.map(e=>({id:e.id,league:e.league,sport:e.sport,home:e.h,away:e.a,status:e.s,...(e.s=='live'?{minute:e.w}:e.s=='upcoming'?{kickoff:e.k}:{}),servers:sj(e.sv)})),highlights:H.map(x=>({id:x.id,title:x.t,home:x.h,away:x.a,length:x.d,servers:sj(x.sv)})),...mvOut(sj),channels:chOut(sj),vjs:allVjs()},null,2);
+  const data=JSON.stringify({settings:{defaultDelaySeconds:DEF},sports:SPORTS,leagues:LG.map(l=>({name:l.n,sport:l.s})),teams:Object.entries(T).map(([code,[name,badge]])=>({code,name,badge})),events:E.map(e=>({id:e.id,league:e.league,sport:e.sport,home:e.h,away:e.a,status:e.s,...(e.s=='live'?{minute:e.w}:e.s=='upcoming'?{kickoff:e.k}:{}),...(e.tv?{tvBadge:tvOut(e.tv)}:{}),servers:sj(e.sv)})),highlights:H.map(x=>({id:x.id,title:x.t,home:x.h,away:x.a,length:x.d,...(x.tv?{tvBadge:tvOut(x.tv)}:{}),servers:sj(x.sv)})),...mvOut(sj),channels:chOut(sj),vjs:allVjs()},null,2);
   
   const isReady = ghUser && ghRepo && ghToken;
 
@@ -500,11 +514,11 @@ async function loadFromGitHub(manual){
     E = Array.isArray(data.events) ? data.events.map(e => ({
       id: e.id, sport: e.sport, league: e.league,
       h: e.home, a: e.away, s: e.status,
-      w: e.minute || '', k: e.kickoff || '',
+      w: e.minute || '', k: e.kickoff || '', tv:tvIn(e.tvBadge),
       sv: (e.servers||[]).map(svFromJson)
     })) : [];
     H = Array.isArray(data.highlights) ? data.highlights.map(x => ({
-      id: x.id, t: x.title, h: x.home, a: x.away, d: x.length,
+      id: x.id, t: x.title, h: x.home, a: x.away, d: x.length, tv:tvIn(x.tvBadge),
       sv: (x.servers||[]).map(svFromJson)
     })) : [];
 
@@ -565,9 +579,10 @@ async function doPush(){
     events: E.map(e => ({
       id: e.id, league: e.league, sport: e.sport, home: e.h, away: e.a, status: e.s,
       ...(e.s == 'live' ? { minute: e.w } : e.s == 'upcoming' ? { kickoff: e.k } : {}),
+      ...(e.tv?{tvBadge:tvOut(e.tv)}:{}),
       servers: sj(e.sv)
     })),
-    highlights: H.map(x => ({ id: x.id, title: x.t, home: x.h, away: x.a, length: x.d, servers: sj(x.sv) })),
+    highlights: H.map(x => ({ id: x.id, title: x.t, home: x.h, away: x.a, length: x.d, ...(x.tv?{tvBadge:tvOut(x.tv)}:{}), servers: sj(x.sv) })),
     ...mvOut(sj),
     channels: chOut(sj),
     vjs: allVjs()
@@ -677,6 +692,7 @@ function showEd(){
   <div class="db"><div><label class="lab">How it looks in the app</label><div id="pv">${(ev?prev:prevH)(draft)}</div></div>
   <div class="f2">${fields}</div>
   <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><b style="flex:1">${ev?'Servers':'Servers and sources'}</b><button class="btn gh" style="padding:7px 12px" onclick="draft.sv.push({n:'Server '+(draft.sv.length+1),u:'https://',au:'',q:'SD',st:'g',r:!draft.sv.length,px:false,dl:null,hd:[]});rSv()">Add server</button></div>${ev?'':'<p class="sub" style="margin:0 0 10px">Add the same clip from different sources, for example your CDN and a mirror.</p>'}<div id="sl" style="display:grid;gap:10px"></div></div></div>
+  <div>${tvRow()}</div>
   <div class="df"><button class="btn" onclick="saveEd()">${ev?'Save event':'Save highlight'}</button><button class="btn gh" onclick="closeEd()">Cancel</button>${isNew?'':`<button class="btn rd" style="margin-left:auto" onclick="askDel('${mode}',${draft.id})">Delete</button>`}</div>`;
   rSv();$('#dr').classList.add('on');$('#ov').classList.add('on');
 }
@@ -869,21 +885,21 @@ const addSrv="draft.sv.push({n:'Server '+(draft.sv.length+1),u:'https://',au:'',
 
 /* JSON out (used by the preview and by the push) */
 function mvOut(sj){
-  const base=x=>({id:x.id,title:x.t,genre:x.g,year:Number(x.y)||x.y||null,vj:x.vj||null,translated:!!x.tr,thumb:x.th||''});
+  const base=x=>({id:x.id,title:x.t,genre:x.g,year:Number(x.y)||x.y||null,vj:x.vj||null,translated:!!x.tr,thumb:x.th||'',...(x.tv?{tvBadge:tvOut(x.tv)}:{})});
   return{
     movies:MV.filter(x=>x.k=='movie').map(x=>{const s=sj(x.sv);return{...base(x),duration:x.d||'',videoUrl:vUrl(s),servers:s}}),
     series:MV.filter(x=>x.k=='series').map(x=>({...base(x),seasons:x.seasons.map(se=>({number:se.n,episodes:se.eps.map(e=>({number:e.n,title:e.t,duration:e.d||'',thumb:e.th||'',videoUrl:realUrl(e.u)?e.u.trim():'',...(e.au&&e.au.trim()?{audioUrl:e.au.trim()}:{})}))}))}))
   };
 }
 function chOut(sj){
-  return CHN.map(c=>{const s=sj(c.sv);return{id:c.id,name:c.t,category:c.cat,country:c.country,initials:c.ini,logo:c.lg||'',thumb:c.lg||'',thumbnail:c.lg||'',color1:c.c1,color2:c.c2,program:c.pr||'',videoUrl:vUrl(s),servers:s}});
+  return CHN.map(c=>{const s=sj(c.sv);return{id:c.id,name:c.t,category:c.cat,country:c.country,initials:c.ini,logo:c.lg||'',thumb:c.lg||'',thumbnail:c.lg||'',color1:c.c1,color2:c.c2,program:c.pr||'',...(c.tv?{tvBadge:tvOut(c.tv)}:{}),videoUrl:vUrl(s),servers:s}});
 }
 /* JSON in */
 const svOrLink=x=>(x.servers&&x.servers.length?x.servers:(x.videoUrl?[{name:'Main',url:x.videoUrl,quality:'HD',status:'stable',recommended:true}]:[])).map(svFromJson);
-const mvBase=(x,k)=>({id:x.id,k,t:x.title||'',g:x.genre||'',y:x.year??'',vj:x.vj||'',tr:x.translated!==false,th:x.thumb||''});
+const mvBase=(x,k)=>({id:x.id,k,t:x.title||'',g:x.genre||'',y:x.year??'',vj:x.vj||'',tr:x.translated!==false,th:x.thumb||'',tv:tvIn(x.tvBadge)});
 const mvFromJson=x=>({...mvBase(x,'movie'),d:x.duration||'',sv:svOrLink(x)});
 const seFromJson=x=>({...mvBase(x,'series'),seasons:(x.seasons||[]).map((se,i)=>({n:se.number||i+1,eps:(se.episodes||[]).map((e,j)=>({n:e.number||j+1,t:e.title||'',d:e.duration||'',th:e.thumb||'',u:e.videoUrl||'',au:e.audioUrl||''}))}))});
-const chFromJson=x=>({id:x.id,t:x.name||'',cat:x.category||'General',country:x.country||'',ini:x.initials||'',lg:x.logo||x.thumb||x.thumbnail||x.thumbnailUrl||'',c1:x.color1||'#7a3fff',c2:x.color2||'#3f1f8a',pr:x.program||'',sv:svOrLink(x)});
+const chFromJson=x=>({id:x.id,t:x.name||'',cat:x.category||'General',country:x.country||'',ini:x.initials||'',lg:x.logo||x.thumb||x.thumbnail||x.thumbnailUrl||'',c1:x.color1||'#7a3fff',c2:x.color2||'#3f1f8a',pr:x.program||'',tv:tvIn(x.tvBadge),sv:svOrLink(x)});
 
 /* lists */
 function rMovies(){
@@ -1018,6 +1034,7 @@ function showMv(){
   ${se?`<div><div class="sh" style="margin-bottom:6px"><b style="flex:1">Seasons and episodes</b><button type="button" class="btn gh" style="padding:7px 12px" onclick="addSe()">Add season</button></div><small class="err" id="e_se"></small><div id="se" style="display:grid;gap:10px;margin-top:8px"></div></div>`
   :srcBlock('Video sources','Add the same movie from different sources so the app can fall back if one fails.','Add source')}
   </div>
+  <div>${tvRow()}</div>
   <div class="df"><button class="btn" onclick="saveMv()">${se?'Save series':'Save movie'}</button><button class="btn gh" onclick="closeEd()">Cancel</button>${isNew?'':`<button class="btn rd" style="margin-left:auto" onclick="askDel('m','${d.id}')">Delete</button>`}</div>`;
   se?rSe():rSv();imgInit();$('#dr').classList.add('on');$('#ov').classList.add('on');
 }
@@ -1098,6 +1115,7 @@ function showCh(){
   <h3 class="gh3">Streams</h3>
   ${srcBlock('Live streams','Add several links so the app can fall back to another one if a stream fails.','Add stream')}
   </div>
+  <div>${tvRow()}</div>
   <div class="df"><button class="btn" onclick="saveCh()">Save channel</button><button class="btn gh" onclick="closeEd()">Cancel</button>${isNew?'':`<button class="btn rd" style="margin-left:auto" onclick="askDel('c','${d.id}')">Delete</button>`}</div>`;
   rSv();imgInit();$('#dr').classList.add('on');$('#ov').classList.add('on');
 }
@@ -1132,6 +1150,26 @@ function askDelX(k,id){
   $('#cf').classList.add('on');$('#cfn').focus();
 }
 
+// ── LINK STREAMZ TV BADGE (optional per item; saved as "tvBadge": true) ──
+const TVB='data:image/svg+xml,'+encodeURIComponent(`<svg viewBox="0 0 340 96" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a2a"/><stop offset="1" stop-color="#ff5a00"/></linearGradient></defs><rect x="3" y="3" width="334" height="90" rx="10" fill="#120f0c" stroke="#ff6a00" stroke-width="4" stroke-linejoin="round"/><rect x="17" y="17" width="62" height="62" rx="8" fill="url(#g)"/><path d="M40 34 L63 48 L40 62 Z" fill="#120f0c" stroke="#120f0c" stroke-width="3" stroke-linejoin="round"/><text x="90" y="46" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="26" fill="#f6efe6" letter-spacing="0.5">LINK STREAMZ</text><rect x="90" y="56" width="48" height="24" rx="5" fill="#ff6a00"/><text x="114" y="73.5" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="15" fill="#120f0c">TV</text></svg>`);
+const TVD={c:{x:4,y:6,w:30},p:{x:79,y:5,w:18}};
+let tvT='c',tvS=1;
+const tvN=(o,d)=>{const n=(v,f)=>Number.isFinite(+v)&&v!==null&&v!==''?+v:f;return{x:n(o&&o.x,d.x),y:n(o&&o.y,d.y),w:Math.min(60,Math.max(8,n(o&&o.w,d.w)))}};
+const tvIn=v=>v===true?{c:{...TVD.c},p:{...TVD.p}}:v&&typeof v=='object'?{c:tvN(v.card,TVD.c),p:tvN(v.player,TVD.p)}:undefined;
+const tvOut=t=>({card:t.c,player:t.p});
+const tvRow=()=>{tvT='c';return `<div class="tvr"><label class="tvh"><input type="checkbox" ${draft.tv?'checked':''} onchange="tvTog(this.checked)"><span><b>Link Streamz TV badge</b><small>Show the badge on this item in the app</small></span><img class="tvb" src="${TVB}" alt=""></label><div id="tvbox">${tvInner()}</div></div>`};
+const tvPaint=()=>{$('#tvbox').innerHTML=tvInner()};
+function tvTog(c){if(c)draft.tv={c:{...TVD.c},p:{...TVD.p}};else delete draft.tv;tvPaint()}
+function tvReset(){draft.tv[tvT]={...TVD[tvT]};tvPaint()}
+function tvAdj(dx,dy,dw){const o=draft.tv[tvT],st=tvS;o.w=Math.min(60,Math.max(8,o.w+dw*st));o.x=Math.min(100-o.w,Math.max(0,o.x+dx*st));o.y=Math.min(100-o.w*.502,Math.max(0,o.y+dy*st));['x','y','w'].forEach(k=>o[k]=Math.round(o[k]*10)/10);tvPaint()}
+function tvInner(){
+  const t=draft.tv;if(!t)return '';
+  const o=t[tvT],b=(k,l,a)=>`<button type="button" class="btn gh tvk" onclick="tvAdj(${a})" aria-label="${l}">${k}</button>`;
+  return `<div class="tvs"><button type="button" class="chip mini ${tvT=='c'?'on':''}" onclick="tvT='c';tvPaint()">Card</button><button type="button" class="chip mini ${tvT=='p'?'on':''}" onclick="tvT='p';tvPaint()">Player</button></div>
+<div class="tvf"><img src="${TVB}" alt="" style="left:${o.x}%;top:${o.y}%;width:${o.w}%"></div>
+<div class="tvg">${b('&#9664;','Move left','-1,0,0')}${b('&#9650;','Move up','0,-1,0')}${b('&#9660;','Move down','0,1,0')}${b('&#9654;','Move right','1,0,0')}</div>
+<div class="tvz">${b('&minus; Size','Smaller','0,0,-1')}${b('+ Size','Bigger','0,0,1')}<select id="tvs" style="width:auto" aria-label="Step in percent" onchange="tvS=+this.value">${[0.5,1,2,5].map(v=>`<option ${v==tvS?'selected':''}>${v}</option>`).join('')}</select><span class="sub">% per tap</span>${b('Reset','Reset','0,0,0').replace('tvAdj(0,0,0)','tvReset()')}</div>
+<p class="sub" style="margin:8px 0 0">Left ${o.x}% &middot; Top ${o.y}% &middot; Width ${o.w}% of the ${tvT=='c'?'card image':'video'}</p>`}
 // ── VPN CONFIG MANAGER ────────────────────────────────────────────────
 // Server layout (private data repo): vpn/index.json (manifest) + vpn/files/<id>.conf (raw bytes)
 let VPN={m:null,sha:null,busy:false,err:''};
