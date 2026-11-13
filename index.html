@@ -437,7 +437,7 @@ function addTeam(){
 }
 
 function rPub(){
-  const sj=a=>a.map(x=>({name:x.n,url:x.u,quality:x.q,audio:x.au||undefined,status:{g:'stable',y:'average',r:'unstable'}[x.st],recommended:x.r,useProxy:!!x.px,delaySeconds:x.dl??null,headers:Object.fromEntries((x.hd||[]).filter(h=>h.k.trim()).map(h=>[h.k.trim(),SECRET(h.k)?'••••••':h.v]))}));
+  const sj=a=>a.map(x=>({name:x.n,url:x.u,quality:x.q,audio:x.au||undefined,status:{g:'stable',y:'average',r:'unstable'}[x.st],recommended:x.r,useProxy:!!x.px,delaySeconds:x.dl??null,...(x.nb?{tvBadge:false}:{}),headers:Object.fromEntries((x.hd||[]).filter(h=>h.k.trim()).map(h=>[h.k.trim(),SECRET(h.k)?'••••••':h.v]))}));
   const sec=[...E,...H,...MV,...CHN].some(x=>(x.sv||[]).some(v=>(v.hd||[]).some(h=>h.k.trim()))),block=sec&&pubRepo;
   const warn=sec?`<div class="warn ${pubRepo?'bad':''}"><b>${pubRepo?'Publishing is blocked':'Some servers include headers or tokens'}</b><span>${pubRepo?'The repository is public, so anyone could read your stream headers. Switch it to private to publish.':'Keep the repository private so only your app and this console can read them.'}</span></div>`:'';
   const data=JSON.stringify({settings:{defaultDelaySeconds:DEF},sports:SPORTS,leagues:LG.map(l=>({name:l.n,sport:l.s})),teams:Object.entries(T).map(([code,[name,badge]])=>({code,name,badge})),events:E.map(e=>({id:e.id,league:e.league,sport:e.sport,home:e.h,away:e.a,status:e.s,...(e.s=='live'?{minute:e.w}:e.s=='upcoming'?{kickoff:e.k}:{}),...(e.tv?{tvBadge:tvOut(e.tv)}:{}),servers:sj(e.sv)})),highlights:H.map(x=>({id:x.id,title:x.t,home:x.h,away:x.a,length:x.d,...(x.tv?{tvBadge:tvOut(x.tv)}:{}),servers:sj(x.sv)})),...mvOut(sj),channels:chOut(sj),vjs:allVjs()},null,2);
@@ -543,6 +543,7 @@ function svFromJson(s){
     st: statusMap[s.status] || 'g',
     r: !!s.recommended,
     px: !!s.useProxy,
+    nb: s.tvBadge === false,
     dl: (typeof s.delaySeconds === 'number') ? s.delaySeconds : null,
     hd: Object.entries(s.headers || {}).map(([k,v]) => ({k, v}))
   };
@@ -568,6 +569,7 @@ async function doPush(){
     };
     // Only include audio when it's non-empty, so old entries stay byte-identical
     if (x.au && x.au.trim()) entry.audio = x.au.trim();
+    if (x.nb) entry.tvBadge = false;
     return entry;
   });
   
@@ -703,7 +705,7 @@ function rSv(){
     return `<div class="sv ${x.r?'rec':''}"><div class="sr"><span class="dot ${x.st}"></span><input value="${esc(x.n)}" placeholder="Server name or source" oninput="draft.sv[${i}].n=this.value"><select aria-label="Quality" onchange="draft.sv[${i}].q=this.value"><option ${x.q=='HD'?'selected':''}>HD</option><option ${x.q=='SD'?'selected':''}>SD</option></select><button class="ib x" aria-label="Remove server" onclick="draft.sv.splice(${i},1);rSv()">&#10005;</button></div>
   <input class="mono" value="${esc(x.u)}" placeholder="Video stream link (.m3u8 or .mp4)" oninput="draft.sv[${i}].u=this.value">
   <div><p class="split-hint">If this source serves video and audio separately (common for YouTube-extracted streams), paste the audio URL below. Leave blank if the video link already contains audio.</p><input class="mono" value="${esc(x.au||'')}" placeholder="Audio track link (optional)" oninput="draft.sv[${i}].au=this.value"></div>
-  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><select style="width:auto" aria-label="Status" onchange="draft.sv[${i}].st=this.value;rSv()"><option value="g" ${x.st=='g'?'selected':''}>Stable</option><option value="y" ${x.st=='y'?'selected':''}>Average</option><option value="r" ${x.st=='r'?'selected':''}>Unstable</option></select><label class="rc"><input type="radio" name="rec" ${x.r?'checked':''} onchange="draft.sv.forEach((y,j)=>y.r=j==${i});rSv()">Recommended</label>${x.au&&x.au.trim()?'<span class="pl2">split streams</span>':''}</div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><select style="width:auto" aria-label="Status" onchange="draft.sv[${i}].st=this.value;rSv()"><option value="g" ${x.st=='g'?'selected':''}>Stable</option><option value="y" ${x.st=='y'?'selected':''}>Average</option><option value="r" ${x.st=='r'?'selected':''}>Unstable</option></select><label class="rc"><input type="radio" name="rec" ${x.r?'checked':''} onchange="draft.sv.forEach((y,j)=>y.r=j==${i});rSv()">Recommended</label>${draft.tv?`<label class="rc"><input type="checkbox" ${x.nb?'':'checked'} onchange="draft.sv[${i}].nb=!this.checked">TV badge</label>`:''}${x.au&&x.au.trim()?'<span class="pl2">split streams</span>':''}</div>
   <details class="adv" ${x.o?'open':''} ontoggle="draft.sv[${i}].o=this.open"><summary>Proxy and headers${on?` <span class="pl2">${[x.px?'proxy':'',hd.length?hd.length+' header'+(hd.length>1?'s':''):'',x.dl!=null?'delay '+(x.dl?x.dl+'s':'off'):''].filter(Boolean).join(' · ')}</span>`:''}</summary>
   <label class="rc"><input type="checkbox" ${x.px?'checked':''} onchange="draft.sv[${i}].px=this.checked;rSv()">Use the app's proxy for this server</label>
   <div><label class="lab">Delay behind live</label><select onchange="draft.sv[${i}].dl=this.value===''?null:+this.value;rSv()"><option value="" ${x.dl==null?'selected':''}>App default (${DEF?DEF+'s':'Off'})</option>${[0,10,20,30].map(v=>`<option value="${v}" ${x.dl===v?'selected':''}>${v?v+'s':'Off'}</option>`).join('')}</select><p class="sub" style="margin:6px 0 0">Any delay above Off is served through the proxy so the app can stay behind live.</p></div>
@@ -1159,7 +1161,7 @@ const tvIn=v=>v===true?{c:{...TVD.c},p:{...TVD.p}}:v&&typeof v=='object'?{c:tvN(
 const tvOut=t=>({card:t.c,player:t.p});
 const tvRow=()=>{tvT='c';return `<div class="tvr"><label class="tvh"><input type="checkbox" ${draft.tv?'checked':''} onchange="tvTog(this.checked)"><span><b>Link Streamz TV badge</b><small>Show the badge on this item in the app</small></span><img class="tvb" src="${TVB}" alt=""></label><div id="tvbox">${tvInner()}</div></div>`};
 const tvPaint=()=>{$('#tvbox').innerHTML=tvInner()};
-function tvTog(c){if(c)draft.tv={c:{...TVD.c},p:{...TVD.p}};else delete draft.tv;tvPaint()}
+function tvTog(c){if(c)draft.tv={c:{...TVD.c},p:{...TVD.p}};else delete draft.tv;tvPaint();if(draft.sv&&$('#sl'))rSv()}
 function tvReset(){draft.tv[tvT]={...TVD[tvT]};tvPaint()}
 function tvAdj(dx,dy,dw){const o=draft.tv[tvT],st=tvS;o.w=Math.min(60,Math.max(8,o.w+dw*st));o.x=Math.min(100-o.w,Math.max(0,o.x+dx*st));o.y=Math.min(100-o.w*.502,Math.max(0,o.y+dy*st));['x','y','w'].forEach(k=>o[k]=Math.round(o[k]*10)/10);tvPaint()}
 function tvInner(){
@@ -1169,7 +1171,7 @@ function tvInner(){
 <div class="tvf"><img src="${TVB}" alt="" style="left:${o.x}%;top:${o.y}%;width:${o.w}%"></div>
 <div class="tvg">${b('&#9664;','Move left','-1,0,0')}${b('&#9650;','Move up','0,-1,0')}${b('&#9660;','Move down','0,1,0')}${b('&#9654;','Move right','1,0,0')}</div>
 <div class="tvz">${b('&minus; Size','Smaller','0,0,-1')}${b('+ Size','Bigger','0,0,1')}<select id="tvs" style="width:auto" aria-label="Step in percent" onchange="tvS=+this.value">${[0.5,1,2,5].map(v=>`<option ${v==tvS?'selected':''}>${v}</option>`).join('')}</select><span class="sub">% per tap</span>${b('Reset','Reset','0,0,0').replace('tvAdj(0,0,0)','tvReset()')}</div>
-<p class="sub" style="margin:8px 0 0">Left ${o.x}% &middot; Top ${o.y}% &middot; Width ${o.w}% of the ${tvT=='c'?'card image':'video'}</p>`}
+<p class="sub" style="margin:8px 0 0">Left ${o.x}% &middot; Top ${o.y}% &middot; Width ${o.w}% of the ${tvT=='c'?'card image':'video'}${draft.sv?'<br>Use the TV badge box on each server below to choose where it shows in the player.':''}</p>`}
 // ── VPN CONFIG MANAGER ────────────────────────────────────────────────
 // Server layout (private data repo): vpn/index.json (manifest) + vpn/files/<id>.conf (raw bytes)
 let VPN={m:null,sha:null,busy:false,err:''};
