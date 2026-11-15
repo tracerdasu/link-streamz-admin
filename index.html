@@ -301,6 +301,7 @@ input[type=color]{padding:3px;height:40px;cursor:pointer}
 .tvg,.tvz{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
 .tvk{padding:8px 12px}
 .tvb{height:34px;width:auto;flex:none}
+.scrim{display:none}
 /* Mobile: slide-in menu instead of the bottom bar */
 @media(max-width:860px){
  .sb{top:0;bottom:0;right:auto;width:min(290px,84vw);height:100%;flex-direction:column;gap:14px;padding:calc(18px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));background:#000;border-top:none;border-right:1px solid var(--line2);transform:translateX(-100%);visibility:hidden;transition:transform .22s ease,visibility 0s .22s;z-index:7;overflow:auto;backdrop-filter:none}
@@ -412,12 +413,12 @@ const mt=x=>`${bd(x.h)}<span>${T[x.h]?T[x.h][0]:x.h}</span><span style="color:va
 
 function render(){
   const N={events:E.length,highlights:H.length,movies:MV.length,channels:CHN.length,teams:Object.keys(T).length};
-  const L={events:'Events',highlights:'Highlights',movies:'Movies',channels:'Channels',teams:'Teams',notify:'Notifications',publish:'Publish'};
+  const L={events:'Events',highlights:'Highlights',movies:'Movies',channels:'Channels',teams:'Teams',notify:'Notifications',update:'App update',publish:'Publish'};
   $('#nav').innerHTML=Object.keys(L).map(k=>`<button class="nav ${view==k?'on':''}" onclick="go('${k}')">${ICO[k]||''}${L[k]}<em>${N[k]??''}</em></button>`).join('');
   const nb=Object.values(T).filter(t=>!t[1]).length;
   const S={events:'What appears on the app home screen',highlights:'Clips in the Highlights tab, each with one or more sources',movies:'Movies and series shown in the Movies section',channels:'Live TV channels shown in the Channels section',teams:nb?`${nb} team${nb>1?'s':''} still need a badge link`:'Team names and badge images',publish:'Send your changes to GitHub so the app updates'};
-  $('#ttl').textContent=L[view];$('#sub').textContent=S[view]||'Send push notifications to app users';
-  $('#view').innerHTML={events:rEvents,highlights:rHl,movies:rMovies,channels:rChannels,teams:rTeams,publish:rPub,notify:rNotify}[view]();pill();
+  $('#ttl').textContent=L[view];$('#sub').textContent=S[view]||{notify:'Send push notifications to app users',update:'Require users to update the app'}[view];
+  $('#view').innerHTML={events:rEvents,highlights:rHl,movies:rMovies,channels:rChannels,teams:rTeams,publish:rPub,notify:rNotify,update:rUpdate}[view]();pill();
 }
 
 function rEvents(){
@@ -457,7 +458,7 @@ function rPub(){
   const sj=a=>a.map(x=>({name:x.n,url:x.u,quality:x.q,audio:x.au||undefined,status:{g:'stable',y:'average',r:'unstable'}[x.st],recommended:x.r,useProxy:!!x.px,delaySeconds:x.dl??null,...(x.nb?{tvBadge:false}:{}),headers:Object.fromEntries((x.hd||[]).filter(h=>h.k.trim()).map(h=>[h.k.trim(),SECRET(h.k)?'••••••':h.v]))}));
   const sec=[...E,...H,...MV,...CHN].some(x=>(x.sv||[]).some(v=>(v.hd||[]).some(h=>h.k.trim()))),block=sec&&pubRepo;
   const warn=sec?`<div class="warn ${pubRepo?'bad':''}"><b>${pubRepo?'Publishing is blocked':'Some servers include headers or tokens'}</b><span>${pubRepo?'The repository is public, so anyone could read your stream headers. Switch it to private to publish.':'Keep the repository private so only your app and this console can read them.'}</span></div>`:'';
-  const data=JSON.stringify({settings:{defaultDelaySeconds:DEF},sports:SPORTS,leagues:LG.map(l=>({name:l.n,sport:l.s})),teams:Object.entries(T).map(([code,[name,badge]])=>({code,name,badge})),events:E.map(e=>({id:e.id,league:e.league,sport:e.sport,home:e.h,away:e.a,status:e.s,...(e.s=='live'?{minute:e.w}:e.s=='upcoming'?{kickoff:e.k}:{}),...(e.tv?{tvBadge:tvOut(e.tv)}:{}),servers:sj(e.sv)})),highlights:H.map(x=>({id:x.id,title:x.t,home:x.h,away:x.a,length:x.d,...(x.tv?{tvBadge:tvOut(x.tv)}:{}),servers:sj(x.sv)})),...mvOut(sj),channels:chOut(sj),vjs:allVjs()},null,2);
+  const data=JSON.stringify({settings:{defaultDelaySeconds:DEF},...(UPD.v||UPD.u?{appUpdate:updOut()}:{}),sports:SPORTS,leagues:LG.map(l=>({name:l.n,sport:l.s})),teams:Object.entries(T).map(([code,[name,badge]])=>({code,name,badge})),events:E.map(e=>({id:e.id,league:e.league,sport:e.sport,home:e.h,away:e.a,status:e.s,...(e.s=='live'?{minute:e.w}:e.s=='upcoming'?{kickoff:e.k}:{}),...(e.tv?{tvBadge:tvOut(e.tv)}:{}),servers:sj(e.sv)})),highlights:H.map(x=>({id:x.id,title:x.t,home:x.h,away:x.a,length:x.d,...(x.tv?{tvBadge:tvOut(x.tv)}:{}),servers:sj(x.sv)})),...mvOut(sj),channels:chOut(sj),vjs:allVjs()},null,2);
   
   const isReady = ghUser && ghRepo && ghToken;
 
@@ -502,7 +503,7 @@ async function loadFromGitHub(manual){
       }
     });
     if (res.status === 404) {
-      T = {}; E = []; H = []; MV = []; CHN = []; VJS = []; DEF = 20;
+      T = {}; E = []; H = []; MV = []; CHN = []; VJS = []; DEF = 20; UPD = {on:false,v:'',u:'',m:''};
       loaded = true;
       updateRepoBadge();
       render();
@@ -525,6 +526,7 @@ async function loadFromGitHub(manual){
     VJS = Array.isArray(data.vjs) ? data.vjs.filter(v => typeof v === 'string' && v.trim()) : [];
 
     if (data.settings && typeof data.settings.defaultDelaySeconds === 'number') DEF = data.settings.defaultDelaySeconds;
+    if (data.appUpdate) UPD = {on: data.appUpdate.enabled !== false, v: String(data.appUpdate.minVersion || ''), u: String(data.appUpdate.apkUrl || ''), m: String(data.appUpdate.message || '')};
     if (Array.isArray(data.leagues) && data.leagues.length) LG = data.leagues.map(l => ({n:l.name,s:l.sport}));
     T = {};
     if (Array.isArray(data.teams)) data.teams.forEach(t => { T[t.code] = [t.name, t.badge||'']; });
@@ -568,6 +570,7 @@ function svFromJson(s){
 // ──────────────────────────────────────────────────────────────────────
 
 async function doPush(){
+  if(UPD.on&&!updOk())return toast('App update: enter a version like 1.9.2 and an https download link.',1);
   const pb = $('#pb');
   if (!ghUser || !ghRepo || !ghToken) {
     toast('Please fill in your GitHub details first.', true);
@@ -592,6 +595,7 @@ async function doPush(){
   
   const data = JSON.stringify({
     settings: { defaultDelaySeconds: DEF },
+    ...(UPD.v || UPD.u ? { appUpdate: updOut() } : {}),
     sports: SPORTS,
     leagues: LG.map(l => ({ name: l.n, sport: l.s })),
     teams: Object.entries(T).map(([code, [name, badge]]) => ({ code, name, badge })),
@@ -1240,6 +1244,20 @@ async function notifySend(){
 function menu(o){$('.sb').classList.toggle('open',!!o)}
 document.addEventListener('click',e=>{if(e.target.closest('#nav'))menu(0)});
 document.addEventListener('keydown',e=>{if(e.key=='Escape')menu(0)});
+// ── MANDATORY APP UPDATE (saved as "appUpdate" in content.json) ──
+let UPD={on:false,v:'',u:'',m:''};
+const updOut=()=>({enabled:!!UPD.on,minVersion:UPD.v.trim(),apkUrl:UPD.u.trim(),message:UPD.m.trim()});
+const updOk=()=>/^\d+(\.\d+){0,3}$/.test(UPD.v.trim())&&/^https:\/\//.test(UPD.u.trim());
+const updMk=()=>mark('Updated app update settings');
+ICO.update='<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14"/></svg>';
+function rUpdate(){
+  return `<div class="panel"><h2>Mandatory update</h2><p class="sub" style="margin-bottom:12px">Users on an older version see a full-screen prompt and can only update or close the app. They see their version and the minimum required.</p>
+<label class="tvh"><input type="checkbox" ${UPD.on?'checked':''} onchange="UPD.on=this.checked;updMk()"><span><b>Require the minimum version</b><small>Turn off to let every version keep working</small></span></label>
+<label class="lab" style="margin-top:14px">Minimum version required</label><input class="mono" placeholder="1.9.2" inputmode="decimal" value="${esc(UPD.v)}" oninput="UPD.v=this.value;updMk()">
+<p class="sub" style="margin:6px 0 0">Use the same number format as the app's version name, for example 1.9.2. Any app older than this is blocked.</p>
+<label class="lab" style="margin-top:12px">App download link (APK, https)</label><input class="mono" placeholder="https://" value="${esc(UPD.u)}" oninput="UPD.u=this.value;updMk()">
+<label class="lab" style="margin-top:12px">Message (optional)</label><textarea rows="3" maxlength="300" oninput="UPD.m=this.value;updMk()">${esc(UPD.m)}</textarea>
+<p class="sub" style="margin:10px 0 0">The app needs both a valid version and an https link before it enforces the update. Publish after changing anything here.</p></div>`}
 // ── VPN CONFIG MANAGER ────────────────────────────────────────────────
 // Server layout (private data repo): vpn/index.json (manifest) + vpn/files/<id>.conf (raw bytes)
 let VPN={m:null,sha:null,busy:false,err:''};
