@@ -301,6 +301,22 @@ input[type=color]{padding:3px;height:40px;cursor:pointer}
 .tvg,.tvz{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
 .tvk{padding:8px 12px}
 .tvb{height:34px;width:auto;flex:none}
+/* Mobile: slide-in menu instead of the bottom bar */
+@media(max-width:860px){
+ .sb{top:0;bottom:0;right:auto;width:min(290px,84vw);height:100%;flex-direction:column;gap:14px;padding:calc(18px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));background:#000;border-top:none;border-right:1px solid var(--line2);transform:translateX(-100%);visibility:hidden;transition:transform .22s ease,visibility 0s .22s;z-index:7;overflow:auto;backdrop-filter:none}
+ .sb.open{transform:none;visibility:visible;transition:transform .22s ease}
+ .sb .brand{display:flex}
+ .sb .repo{display:block}
+ #nav{flex-direction:column;gap:4px}
+ .nav{flex:none;flex-direction:row;gap:10px;padding:12px;font-size:15px;text-align:left;justify-content:flex-start}
+ .nav em{display:block}
+ .main{padding:16px 14px 40px}
+ .mb{position:sticky;top:0;z-index:3;margin:-16px -14px 12px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:rgba(0,0,0,.94);backdrop-filter:blur(10px)}
+ .scrim{display:none;position:fixed;inset:0;z-index:6;background:rgba(0,0,0,.6)}
+ .sb.open+.scrim{display:block}
+ .toast{bottom:24px}
+ .vfab{bottom:calc(20px + env(safe-area-inset-bottom))}
+}
 </style>
 </head>
 <body>
@@ -310,8 +326,9 @@ input[type=color]{padding:3px;height:40px;cursor:pointer}
     <div id="nav"></div>
     <div class="repo"><b id="repoStatus"><span class="dot g"></span>Connected to GitHub</b><small id="repoName">Loading...</small></div>
   </aside>
+  <div class="scrim" id="scrim" onclick="menu(0)"></div>
   <main class="main">
-    <div class="mb"><div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M7 4l13 8-13 8z"/></svg></div><div><b style="letter-spacing:.04em">LINK STREAMZ</b><div class="sub" style="margin:0">Admin console</div></div></div>
+    <div class="mb"><button class="ib" onclick="menu(1)" aria-label="Open menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M7 4l13 8-13 8z"/></svg></div><div><b style="letter-spacing:.04em">LINK STREAMZ</b><div class="sub" style="margin:0">Admin console</div></div></div>
     <div class="top"><div><h1 id="ttl"></h1><p class="sub" id="sub"></p></div><button class="pill" id="pill" onclick="go('publish')"></button><button class="btn" onclick="go('publish')">Publish</button></div>
     <div id="view"></div>
   </main>
@@ -395,12 +412,12 @@ const mt=x=>`${bd(x.h)}<span>${T[x.h]?T[x.h][0]:x.h}</span><span style="color:va
 
 function render(){
   const N={events:E.length,highlights:H.length,movies:MV.length,channels:CHN.length,teams:Object.keys(T).length};
-  const L={events:'Events',highlights:'Highlights',movies:'Movies',channels:'Channels',teams:'Teams',publish:'Publish'};
-  $('#nav').innerHTML=Object.keys(L).map(k=>`<button class="nav ${view==k?'on':''}" onclick="go('${k}')">${ICO[k]}${L[k]}<em>${N[k]??''}</em></button>`).join('');
+  const L={events:'Events',highlights:'Highlights',movies:'Movies',channels:'Channels',teams:'Teams',notify:'Notifications',publish:'Publish'};
+  $('#nav').innerHTML=Object.keys(L).map(k=>`<button class="nav ${view==k?'on':''}" onclick="go('${k}')">${ICO[k]||''}${L[k]}<em>${N[k]??''}</em></button>`).join('');
   const nb=Object.values(T).filter(t=>!t[1]).length;
   const S={events:'What appears on the app home screen',highlights:'Clips in the Highlights tab, each with one or more sources',movies:'Movies and series shown in the Movies section',channels:'Live TV channels shown in the Channels section',teams:nb?`${nb} team${nb>1?'s':''} still need a badge link`:'Team names and badge images',publish:'Send your changes to GitHub so the app updates'};
-  $('#ttl').textContent=L[view];$('#sub').textContent=S[view];
-  $('#view').innerHTML={events:rEvents,highlights:rHl,movies:rMovies,channels:rChannels,teams:rTeams,publish:rPub}[view]();pill();
+  $('#ttl').textContent=L[view];$('#sub').textContent=S[view]||'Send push notifications to app users';
+  $('#view').innerHTML={events:rEvents,highlights:rHl,movies:rMovies,channels:rChannels,teams:rTeams,publish:rPub,notify:rNotify}[view]();pill();
 }
 
 function rEvents(){
@@ -887,9 +904,9 @@ const addSrv="draft.sv.push({n:'Server '+(draft.sv.length+1),u:'https://',au:'',
 
 /* JSON out (used by the preview and by the push) */
 function mvOut(sj){
-  const base=x=>({id:x.id,title:x.t,genre:x.g,year:Number(x.y)||x.y||null,vj:x.vj||null,translated:!!x.tr,thumb:x.th||'',...(x.tv?{tvBadge:tvOut(x.tv)}:{})});
+  const base=x=>({id:x.id,title:x.t,genre:x.g,year:Number(x.y)||x.y||null,vj:x.vj||null,translated:!!x.tr,thumb:x.th||'',...(x.tv?{tvBadge:tvOut(x.tv)}:{}),...(x.lim&&x.k=='movie'?{timeLimited:limOut(x.lim)}:{})});
   return{
-    movies:MV.filter(x=>x.k=='movie').map(x=>{const s=sj(x.sv);return{...base(x),duration:x.d||'',videoUrl:vUrl(s),servers:s}}),
+    movies:MV.filter(x=>x.k=='movie').map(x=>{const s=sj(x.lim?x.sv.filter(v=>(v.u||'').trim()):x.sv);return{...base(x),duration:x.d||'',videoUrl:vUrl(s),servers:s}}),
     series:MV.filter(x=>x.k=='series').map(x=>({...base(x),seasons:x.seasons.map(se=>({number:se.n,episodes:se.eps.map(e=>({number:e.n,title:e.t,duration:e.d||'',thumb:e.th||'',videoUrl:realUrl(e.u)?e.u.trim():'',...(e.au&&e.au.trim()?{audioUrl:e.au.trim()}:{})}))}))}))
   };
 }
@@ -898,7 +915,7 @@ function chOut(sj){
 }
 /* JSON in */
 const svOrLink=x=>(x.servers&&x.servers.length?x.servers:(x.videoUrl?[{name:'Main',url:x.videoUrl,quality:'HD',status:'stable',recommended:true}]:[])).map(svFromJson);
-const mvBase=(x,k)=>({id:x.id,k,t:x.title||'',g:x.genre||'',y:x.year??'',vj:x.vj||'',tr:x.translated!==false,th:x.thumb||'',tv:tvIn(x.tvBadge)});
+const mvBase=(x,k)=>({id:x.id,k,t:x.title||'',g:x.genre||'',y:x.year??'',vj:x.vj||'',tr:x.translated!==false,th:x.thumb||'',tv:tvIn(x.tvBadge),lim:limIn(x.timeLimited)});
 const mvFromJson=x=>({...mvBase(x,'movie'),d:x.duration||'',sv:svOrLink(x)});
 const seFromJson=x=>({...mvBase(x,'series'),seasons:(x.seasons||[]).map((se,i)=>({n:se.number||i+1,eps:(se.episodes||[]).map((e,j)=>({n:e.number||j+1,t:e.title||'',d:e.duration||'',th:e.thumb||'',u:e.videoUrl||'',au:e.audioUrl||''}))}))});
 const chFromJson=x=>({id:x.id,t:x.name||'',cat:x.category||'General',country:x.country||'',ini:x.initials||'',lg:x.logo||x.thumb||x.thumbnail||x.thumbnailUrl||'',c1:x.color1||'#7a3fff',c2:x.color2||'#3f1f8a',pr:x.program||'',tv:tvIn(x.tvBadge),sv:svOrLink(x)});
@@ -1036,6 +1053,7 @@ function showMv(){
   ${se?`<div><div class="sh" style="margin-bottom:6px"><b style="flex:1">Seasons and episodes</b><button type="button" class="btn gh" style="padding:7px 12px" onclick="addSe()">Add season</button></div><small class="err" id="e_se"></small><div id="se" style="display:grid;gap:10px;margin-top:8px"></div></div>`
   :srcBlock('Video sources','Add the same movie from different sources so the app can fall back if one fails.','Add source')}
   </div>
+  ${draft.k=='movie'?`<div>${limRow()}</div>`:''}
   <div>${tvRow()}</div>
   <div class="df"><button class="btn" onclick="saveMv()">${se?'Save series':'Save movie'}</button><button class="btn gh" onclick="closeEd()">Cancel</button>${isNew?'':`<button class="btn rd" style="margin-left:auto" onclick="askDel('m','${d.id}')">Delete</button>`}</div>`;
   se?rSe():rSv();imgInit();$('#dr').classList.add('on');$('#ov').classList.add('on');
@@ -1060,7 +1078,7 @@ function vMv(){
   if(!(+d.y>=1950&&+d.y<=new Date().getFullYear()+1))fe('y','Select the release year.');
   if(d.tr&&!String(d.vj||'').trim())fe('vj','Choose the VJ, or switch to Non-translated.');
   if(!d.th.trim())fe('th','Add the thumbnail link.');else if(!isUrl(d.th))fe('th','This image link is not valid. It should start with https://');
-  if(!se){if(!durOk(d.d))fe('d','Set the running time.');svChk()}
+  if(!se){if(!durOk(d.d))fe('d','Set the running time.');if(d.lim&&!d.lim.at)fe('lim','Pick the start time for the time-limited release.');if(!(d.lim&&!d.sv.some(v=>(v.u||'').trim())))svChk()}
   else{
     if(!d.seasons.length)fe('se','Add at least one season.');
     d.seasons.forEach((s,i)=>{
@@ -1172,6 +1190,56 @@ function tvInner(){
 <div class="tvg">${b('&#9664;','Move left','-1,0,0')}${b('&#9650;','Move up','0,-1,0')}${b('&#9660;','Move down','0,1,0')}${b('&#9654;','Move right','1,0,0')}</div>
 <div class="tvz">${b('&minus; Size','Smaller','0,0,-1')}${b('+ Size','Bigger','0,0,1')}<select id="tvs" style="width:auto" aria-label="Step in percent" onchange="tvS=+this.value">${[0.5,1,2,5].map(v=>`<option ${v==tvS?'selected':''}>${v}</option>`).join('')}</select><span class="sub">% per tap</span>${b('Reset','Reset','0,0,0').replace('tvAdj(0,0,0)','tvReset()')}</div>
 <p class="sub" style="margin:8px 0 0">Left ${o.x}% &middot; Top ${o.y}% &middot; Width ${o.w}% of the ${tvT=='c'?'card image':'video'}${draft.sv?'<br>Use the TV badge box on each server below to choose where it shows in the player.':''}</p>`}
+// ── TIME-LIMITED MOVIES + PUSH NOTIFICATIONS ─────────────────────────
+const limIn=t=>t&&t.startAt?{at:String(t.startAt).slice(0,16),h:+t.durationHours||24,dl:t.allowDownload!==false}:undefined;
+const limOut=l=>({startAt:l.at+':00+03:00',durationHours:l.h,allowDownload:!!l.dl});
+const limRow=()=>`<div class="tvr"><label class="tvh"><input type="checkbox" ${draft.lim?'checked':''} onchange="limTog(this.checked)"><span><b>Time-limited release</b><small>Available from a set time (EAT) for a limited duration</small></span></label><div id="limbox">${limInner()}</div></div>`;
+const limPaint=()=>{$('#limbox').innerHTML=limInner()};
+function limTog(c){if(c)draft.lim={at:'',h:168,dl:true};else delete draft.lim;limPaint()}
+function limInner(){
+  const l=draft.lim;if(!l)return '';
+  const st=l.at?Date.parse(l.at+':00+03:00'):NaN,en=st+l.h*36e5,f=ms=>new Date(ms).toLocaleString('en-GB',{timeZone:'Africa/Nairobi',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})+' EAT';
+  return `<label class="lab" style="margin-top:12px">Available from (East Africa Time)</label><input type="datetime-local" value="${l.at}" onchange="draft.lim.at=this.value;limPaint()">
+<label class="lab" style="margin-top:12px">Available for (hours)</label><input type="number" min="1" max="8760" inputmode="numeric" value="${l.h}" onchange="draft.lim.h=Math.max(1,Math.floor(+this.value)||1);limPaint()">
+<div class="chips" style="margin:10px 0 0">${[[24,'24 hours'],[72,'3 days'],[168,'7 days'],[720,'1 month']].map(([h,t])=>`<button type="button" class="chip mini" onclick="draft.lim.h=${h};limPaint()">${t}</button>`).join('')}</div>
+<label class="tvh" style="margin-top:12px"><input type="checkbox" ${l.dl?'checked':''} onchange="draft.lim.dl=this.checked"><span><b>Allow download</b><small>Viewers can save it to watch later</small></span></label>
+<p class="sub" style="margin:10px 0 0">${isNaN(st)?'Pick the start time.':`Starts ${f(st)}<br>Ends ${f(en)}`}<br>The video link is optional until the start time. The app will not play it before then.</p>`}
+let NT={t:'',b:'',f:'std',img:'',btn:'',go:'home'};
+const PUSH={u:localStorage.getItem('ls_push_url')||'',k:localStorage.getItem('ls_push_key')||''};
+ICO.notify='<svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0112 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 004 0"/></svg>';
+function rNotify(){
+  const o=(a,v)=>a.map(([k,t])=>`<option value="${k}" ${v==k?'selected':''}>${t}</option>`).join('');
+  return `<div class="panel"><h2>New notification</h2>
+<label class="lab">Title</label><input maxlength="60" value="${esc(NT.t)}" oninput="NT.t=this.value">
+<label class="lab" style="margin-top:12px">Message</label><textarea rows="4" maxlength="500" oninput="NT.b=this.value">${esc(NT.b)}</textarea>
+<label class="lab" style="margin-top:12px">Format</label><select onchange="NT.f=this.value;render()">${o([['std','Standard'],['big','Big text (expandable)'],['pic','Big picture']],NT.f)}</select>
+${NT.f=='pic'?`<label class="lab" style="margin-top:12px">Picture link</label><input class="mono" placeholder="https://" value="${esc(NT.img)}" oninput="NT.img=this.value">`:''}
+<label class="lab" style="margin-top:12px">Button label (optional)</label><input maxlength="20" value="${esc(NT.btn)}" oninput="NT.btn=this.value">
+<label class="lab" style="margin-top:12px">Tapping opens</label><select onchange="NT.go=this.value">${o([['home','Home'],['movies','Movies'],['events','Events'],['channels','Channels'],['downloads','Downloads']],NT.go)}</select>
+<button class="btn" style="margin-top:14px" onclick="notifyAsk()">Send to all users</button></div>
+<div class="panel"><h2>Push service</h2><p class="sub" style="margin-bottom:10px">The address and secret of your push endpoint. Saved on this device only.</p>
+<label class="lab">Endpoint URL</label><input class="mono" placeholder="https://" value="${esc(PUSH.u)}" oninput="PUSH.u=this.value.trim();localStorage.setItem('ls_push_url',PUSH.u)">
+<label class="lab" style="margin-top:12px">Secret</label><input type="password" value="${esc(PUSH.k)}" oninput="PUSH.k=this.value;localStorage.setItem('ls_push_key',PUSH.k)"></div>`}
+function notifyAsk(){
+  if(NT.t.trim().length<2||NT.b.trim().length<2)return toast('Add a title and a message.',true);
+  if(NT.f=='pic'&&!/^https:\/\//.test(NT.img.trim()))return toast('The picture link must start with https://',true);
+  if(!/^https:\/\//.test(PUSH.u)||!PUSH.k)return toast('Add your push endpoint and secret first.',true);
+  $('#cft').textContent='Send this notification?';
+  $('#cfb').innerHTML=`<b>${esc(NT.t)}</b><br>${esc(NT.b)}<br><br>It goes to every user who has the app installed.`;
+  $('#cfy').textContent='Send now';
+  pend=notifySend;$('#cf').classList.add('on');$('#cfn').focus();
+}
+async function notifySend(){
+  try{
+    const r=await fetch(PUSH.u,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+PUSH.k},body:JSON.stringify({title:NT.t.trim(),body:NT.b.trim(),format:NT.f,image:NT.f=='pic'?NT.img.trim():undefined,button:NT.btn.trim()||undefined,target:NT.go,topic:'all',sentAt:new Date().toISOString()})});
+    if(!r.ok)throw new Error('Push service returned '+r.status);
+    toast('Notification sent');NT={...NT,t:'',b:'',img:'',btn:''};render();
+  }catch(e){toast(e.message=='Failed to fetch'?'Could not reach the push service.':e.message,true)}
+}
+// ── MOBILE MENU ──
+function menu(o){$('.sb').classList.toggle('open',!!o)}
+document.addEventListener('click',e=>{if(e.target.closest('#nav'))menu(0)});
+document.addEventListener('keydown',e=>{if(e.key=='Escape')menu(0)});
 // ── VPN CONFIG MANAGER ────────────────────────────────────────────────
 // Server layout (private data repo): vpn/index.json (manifest) + vpn/files/<id>.conf (raw bytes)
 let VPN={m:null,sha:null,busy:false,err:''};
